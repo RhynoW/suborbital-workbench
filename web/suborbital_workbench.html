@@ -286,6 +286,24 @@ td.num{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:n
 }
 .ctlbar label{font-size:12.5px; color:var(--muted); display:flex;
   align-items:center; gap:6px}
+.loop{margin-top:20px; display:grid; gap:1px; background:var(--line);
+  border:1px solid var(--line)}
+.loop .lp{background:var(--surface); padding:14px 16px; display:grid;
+  grid-template-columns:30px 1fr auto; gap:14px; align-items:start}
+.loop .lp .idx{font-family:var(--mono); font-size:12px; color:var(--muted);
+  padding-top:3px}
+.loop .lp h4{font-size:14.5px; margin:0; font-weight:500}
+.loop .lp p{margin:5px 0 0; font-size:12.5px; color:var(--ink-2);
+  line-height:1.6; max-width:62ch}
+.loop .lp .num{font-family:var(--mono); font-variant-numeric:tabular-nums;
+  text-align:right; white-space:nowrap}
+.loop .lp .num b{display:block; font-size:16px; font-weight:500}
+.loop .lp .num span{display:block; font-size:11.5px; color:var(--muted);
+  margin-top:3px}
+.loop .lp .num span.up{color:var(--crit)}
+.loop .lp .num span.dn{color:var(--good)}
+.loop .back{background:var(--surface-2); padding:12px 16px; font-size:12.5px;
+  color:var(--accent); font-family:var(--mono)}
 .bigeq{margin-top:20px; padding:20px 22px; background:var(--surface);
   border-left:3px solid var(--accent); overflow-x:auto}
 .bigeq b{display:block; font-family:var(--mono); font-size:19px;
@@ -514,9 +532,51 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
   </div>
 </section>
 
+<!-- ── 飛行包絡線與設計迴圈 ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>飛行包絡線與設計迴圈</h2></div>
+  <p class="sec-note">
+    前面每一節各自回答一個問題。這一節把它們疊在同一張圖上:
+    載具究竟能在哪些「高度–速度」組合下飛,以及為什麼動一個設計變數
+    會讓其他每一個都跟著動。
+  </p>
+
+  <h3 style="margin-top:28px; font-size:17px">一、高度–速度走廊</h3>
+  <p class="sec-note">
+    次軌道滑翔載具的包絡線不是一般飛機的「高度–馬赫」圖,而是一條<strong>走廊</strong>:
+    <strong>飛太高</strong>空氣太薄、升力撐不住,載具會沉下去變成彈道;
+    <strong>飛太低</strong>動壓與熱通量迅速上升,結構與熱防護撐不住。
+    可飛的區域就夾在中間,而且會隨速度一路收窄。
+  </p>
+  <p class="sec-note">
+    把 <strong>Aviator 的求解上限</strong>也畫在同一張圖上 ——
+    工具邊界和熱邊界、升力邊界一樣,都是你在設計時必須繞開的一條線。
+  </p>
+
+  <figure>
+    <div class="plot"><canvas id="envelope" width="1120" height="470"></canvas></div>
+    <figcaption id="envCap"></figcaption>
+  </figure>
+  <dl class="readout" id="envRead"></dl>
+
+  <h3 style="margin-top:34px; font-size:17px">二、設計迴圈:為什麼沒有「單獨」的設計變數</h3>
+  <p class="sec-note">
+    學生常把設計當成一串單向的計算。實際上它是一個<strong>閉環</strong> ——
+    最後一步會回頭改變第一步的前提。下面用<strong>射程 +10%</strong> 走一圈,
+    每一格的數字都跟著上面的滑桿即時變。
+  </p>
+
+  <div class="loop" id="designLoop"></div>
+
+  <div class="callout">
+    <h3>這個迴圈怎麼收斂</h3>
+    <p id="loopEnd"></p>
+  </div>
+</section>
+
 <!-- ── 3D 外型與流場 ────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">06</span><h2>外型與 Mach 20 的流場</h2></div>
+  <div class="sec-head"><span class="sec-num">07</span><h2>外型與 Mach 20 的流場</h2></div>
   <p class="sec-note">
     這是本專案用參數化建模產生的太空飛機外型(機身斷面管、NACA 厚度的三角翼、
     垂尾與機身襟翼),直接載入 STK 用的同一份網格 ——
@@ -554,7 +614,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 乘波體與三種彈道 ─────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">07</span><h2>乘波體、錢學森彈道、桑格爾彈道</h2></div>
+  <div class="sec-head"><span class="sec-num">08</span><h2>乘波體、錢學森彈道、桑格爾彈道</h2></div>
   <p class="sec-note">
     這三個名詞常被混用,但它們回答的不是同一個問題。
     <strong>乘波體是「外型」,另外兩個是「軌跡」</strong> ——
@@ -571,7 +631,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 4 工程因子 ───────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">08</span><h2>十個必須計算的工程因子</h2></div>
+  <div class="sec-head"><span class="sec-num">09</span><h2>十個必須計算的工程因子</h2></div>
   <p class="sec-note">
     每一格是一個必須算、而且會和其他因子打架的量。下緣是目前設計點的值,
     最後一行是它的設計張力 —— 也就是為什麼不能只往一個方向最佳化。
@@ -581,7 +641,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 5 工具邊界 ───────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">09</span><h2>工具的能力邊界也是設計條件</h2></div>
+  <div class="sec-head"><span class="sec-num">10</span><h2>工具的能力邊界也是設計條件</h2></div>
   <p class="sec-note">
     以 STK 12 實機量測的結果。工程師要知道工具在哪裡停下來 ——
     模擬跑得出數字不等於那個數字有效。
@@ -616,7 +676,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 名詞對照 ─────────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">10</span><h2>名詞對照</h2></div>
+  <div class="sec-head"><span class="sec-num">11</span><h2>名詞對照</h2></div>
   <p class="sec-note">
     這一節不推導,只把前面用到的符號一次列清楚,並附上<strong>最常見的誤解</strong> ——
     那一欄比定義欄有用。「本頁的值」會跟著上面的滑桿一起變。
@@ -762,34 +822,73 @@ function equilibriumGlideAlt(v, wl){
   }
   return (lo+hi)/2;
 }
-function boostGlide(range, ld, wl){
-  const v = glideV(range, ld);
-  const o = orbitFromBurnout(RE + KARMAN, v, GAMMA_BO);
-  const glAlt = equilibriumGlideAlt(v, wl);
-  // 真空弧:沿圓錐曲線從熄火點降到平衡滑翔高度
-  let arc = 0;
-  if (o.e > 1e-9){
-    const nuOf = r => Math.acos(Math.max(-1, Math.min(1, (o.p/r - 1)/o.e)));
-    arc = Math.min(range*0.5,
-      ((2*Math.PI - nuOf(RE+glAlt)) - nuOf(RE+KARMAN))*RE);
+/* 真空弧的射程與弧終點狀態。
+   弧終點定義為「大氣開始撐得住載具」之處,也就是該速度的平衡滑翔高度。
+   高度與速度互為因變,用固定點迭代;兩端都要夾在物理定義域內,
+   否則 v -> v_c 時平衡滑翔高度發散,迭代會跑掉。         */
+function arcAndEntry(vbo, wl){
+  const o = orbitFromBurnout(RE + KARMAN, vbo, GAMMA_BO);
+  if (!(o.e > 1e-9) || !isFinite(o.a)) return {arc:0, alt:KARMAN, v:vbo, o};
+  const nuOf = r => Math.acos(Math.max(-1, Math.min(1, (o.p/r - 1)/o.e)));
+  const clamp = v => Math.min(equilibriumGlideAlt(Math.min(v, 0.98*V_CIRC_SURF), wl),
+                              KARMAN);
+  let alt = clamp(vbo), vEnd = vbo;
+  for (let k = 0; k < 5; k++){          // 收斂很快,5 次與 8 次差 < 0.1 m/s
+    vEnd = Math.sqrt(Math.max(0, MU*(2/(RE+alt) - 1/o.a)));
+    alt = clamp(vEnd);
   }
-  const vHo = Math.min(v, TAS_LIMIT);
-  const aviator = Math.max(0, Math.min(range - arc, glideRangeOf(vHo, ld)));
-  return {v_bo: v, apogee: o.apogee, e: o.e, p: o.p, a: o.a,
-          glideAlt: glAlt, arc, aviator,
-          seam: Math.max(0, range - arc - aviator),
-          seamDv: Math.max(0, v - TAS_LIMIT)};
+  const arc = Math.max(0, ((2*Math.PI - nuOf(RE+alt)) - nuOf(RE+KARMAN))*RE);
+  return {arc, alt, v:vEnd, o};
+}
+
+/* 助推滑翔的**自洽閉合解**。與 spaceport_analysis.boost_glide() 同一套式子。
+
+   2026-09 修正:先前寫成 v_bo = glideV(全程),等於假設「從熄火起就一路
+   平衡滑翔」。但熄火後有約 1,200 km 的弧是在大氣之上飛的,幾乎沒有阻力 ——
+   把它也算進 Eggers 射程就把同一段路算了兩次,差額被推給一個 3,765 km 的
+   「無模型涵蓋」接縫。現在解的是:
+
+       弧射程(v_bo) + Eggers 滑翔射程(弧終點速度) = 全程
+
+   結果 v_bo 降約 218 m/s,弧終點速度恰好等於該點所需的滑翔進入速度,
+   **航程接縫歸零**。剩下的 seamDv 只是工具邊界,與航程無關。      */
+function boostGlide(range, ld, wl){
+  const closure = v => {
+    const r = arcAndEntry(v, wl);
+    return Math.min(range*0.5, r.arc) + glideRangeOf(r.v, ld) - range;
+  };
+  let lo = 200, hi = V_CIRC_SURF*0.9999;
+  const feasible = closure(hi) >= 0;
+  if (feasible){
+    for (let k = 0; k < 32; k++){      // 7,700/2^32,遠小於任何有意義的解析度
+      const m = (lo+hi)/2;
+      if (closure(m) > 0) hi = m; else lo = m;
+    }
+  }
+  const vbo = feasible ? (lo+hi)/2 : hi;
+  const r = arcAndEntry(vbo, wl);
+  const arc = Math.min(range*0.5, r.arc);
+  const glide = Math.max(0, range - arc);
+  return {v_bo: vbo, v_entry: r.v, apogee: r.o.apogee,
+          e: r.o.e, p: r.o.p, a: r.o.a,
+          glideAlt: r.alt, arc, aviator: glide, glide,
+          residual: arc + glideRangeOf(r.v, ld) - range,
+          seam: 0,                                  // 航程缺口已歸零
+          seamDv: Math.max(0, r.v - TAS_LIMIT),     // 工具邊界
+          feasible};
 }
 function glideRangeOf(v, ld){
   const x = (v/V_CIRC_SURF)**2;
   return x >= 1 ? Infinity : ld*(RE/2)*Math.log(1/(1-x));
 }
 // 反解:要把熄火速度壓到 v_target,需要多少升阻比
+/* 判準改看**弧終點速度**:Aviator 要接手的是那個速度,不是熄火速度。
+   本任務的接縫消失升阻比因此由 6.54 修正為 6.13。 */
 function ldForVelocity(range, vTarget){
   let lo = 0.5, hi = 25;
-  for (let i = 0; i < 80; i++){
+  for (let i = 0; i < 20; i++){
     const m = (lo+hi)/2;
-    if (glideV(range, m) > vTarget) lo = m; else hi = m;
+    if (boostGlide(range, m, S.wl).v_entry > vTarget) lo = m; else hi = m;
   }
   return (lo+hi)/2;
 }
@@ -874,7 +973,9 @@ function compute(){
   const tw2 = 0.8;
   const t1 = tBurn(S.isp1, mr1, S.tw1), t2 = tBurn(S.isp2, mr2, tw2);
   const coastS = 6;
-  const vEntry = vbo;
+  // 再入速度是**弧終點**的速度,不是熄火速度 ——
+  // 真空弧下降了約 30 km,位能換成動能,弧終點反而更快。
+  const vEntry = bg.v_entry;
   // 熱負荷:只取 q ∝ √ρ·v³ 的速度項,以軌道再入速度為 1
   const qRatio = (vEntry/V_CIRC_SURF)**3;
   const decelG = 1/Math.max(0.1, S.ld);
@@ -884,6 +985,8 @@ function compute(){
   return {rangeM, pure, bg, vbo, assist, dvTotal, dv1, dv2, mr1, mr2, mrTot,
           tw2, t1, t2, coastS, tSep:t1, tBO:t1+coastS+t2, vEntry, qRatio,
           decelG, seam: bg.seamDv, seamKm: bg.seam, pctOrbital, saveVsPure,
+          vEntryArc: bg.v_entry, arcM: bg.arc, glideM: bg.glide,
+          residual: bg.residual,
           apogee: bg.apogee, ldSeamFree};
 }
 
@@ -979,7 +1082,7 @@ function render(){
      vals:[['再入速度', fmt(C.vEntry)+' m/s'],
            ['速度三次方熱負荷指標', fmt(C.qRatio,2)+' ×'],
            ['等效阻力減速量級', fmt(C.decelG,2)+' g'],
-           ['超出模擬上限', fmt(C.seam)+' m/s', C.seam > 0]],
+           ['超出 Aviator 求解上限', fmt(C.seam)+' m/s', C.seam > 0]],
      why:`熱負荷指標只取<strong>速度三次方</strong>那一項
           (假設密度與鼻錐半徑相同),不是完整的 Sutton–Graves 熱通量比;
           減速量級是理想平衡滑翔下的估算,<strong>不是乘員過載或結構最大過載</strong>。
@@ -987,8 +1090,10 @@ function render(){
           而 Aviator 的航段求解在真空速約 ${fmt(TAS_LIMIT)} m/s 以上
           不收斂 ——
           ${C.seam > 0
-            ? `目前設計超出 <strong style="color:var(--crit)">${fmt(C.seam)} m/s</strong>,這一段必須由氣動減速消掉,而兩個模型都不涵蓋它。`
-            : '目前設計落在可模擬範圍內。'}`},
+            ? `目前設計的弧終點速度超出 <strong style="color:var(--crit)">${fmt(C.seam)} m/s</strong>。
+               <b>這是工具邊界,不是航程缺口</b> —— 航程本身是閉合的(見下一節),
+               只是這一段不能交給 Aviator 飛,要改用外部星曆播放。`
+            : '目前設計落在 Aviator 可解範圍內,整條任務可端對端模擬。'}`},
   ];
   document.getElementById('chain').innerHTML = chain.map(l => `
     <div class="link">
@@ -1007,6 +1112,8 @@ function render(){
   renderConcepts(C);
   drawTraj3(C);
   drawWater(C);
+  drawEnvelope(C);
+  renderLoop(C);
   renderGlossary(C);
   drawMachAlt(C);
   draw3D();
@@ -1044,14 +1151,16 @@ function renderLayers(C){
        : `平衡滑翔 v/v_c = ${fmt(vRatio,3)}、中心角 ${fmt(thetaDeg,0)}°、`
          + `質量比 ${fmt(C.mrTot,1)} : 1,皆在一階模型的適用範圍內。`,
      issues.length ? '有疑慮' : '通過'],
-    ['模擬工具', C.seam > 0 ? 'no' : 'ok',
+    ['模擬工具', C.seam > 0 ? 'warn' : 'ok',
      C.seam > 0
-       ? `所需 ${fmt(C.vbo)} m/s 超出求解上限 ${fmt(TAS_LIMIT)} m/s 達 `
-         + `${fmt(C.seam)} m/s,對應 ${fmt(C.seamKm/1000)} km 的高速滑翔`
-         + `(全程的 ${fmt(C.seamKm/C.rangeM*100)}%)沒有模型涵蓋。`
-         + `升阻比提高到 ${fmt(C.ldSeamFree,2)} 即可消除。`
-       : `所需 ${fmt(C.vbo)} m/s 在 Aviator 可解範圍內。`,
-     C.seam > 0 ? '超出' : '可模擬'],
+       ? `弧終點 ${fmt(C.vEntryArc)} m/s 超出 Aviator 求解上限 `
+         + `${fmt(TAS_LIMIT)} m/s 達 ${fmt(C.seam)} m/s,`
+         + `所以高超音速段改用<b>外部星曆</b>播放,Aviator 只做終端進場。`
+         + `升阻比提高到 ${fmt(C.ldSeamFree,2)} 時整條任務可在 Aviator 內`
+         + `端對端模擬。<b>航程本身是閉合的</b>(殘差 `
+         + `${fmt(Math.abs(C.residual),1)} m),沒有沒模型涵蓋的路段。`
+       : `弧終點 ${fmt(C.vEntryArc)} m/s 在 Aviator 可解範圍內。`,
+     C.seam > 0 ? '要換模型' : '可模擬'],
     ['工程可行', 'na',
      '本頁全部是一階解析估算。要判斷可行性,還需要上升段軌跡最佳化、'
      + '含阻力與升力的六自由度再入積分、氣動係數資料庫、熱防護與結構分析、'
@@ -1548,6 +1657,320 @@ function drawMachAlt(C){
      <br>所以設計時必須分清楚限制是掛在<strong>馬赫數</strong>還是<strong>真實空速</strong>上。
      本頁量到的 Aviator 求解上限是<strong>真空速</strong> ${fmt(v)} m/s:
      同樣馬赫 20 在 80 km 解得出來、在 60 km 解不出來,原因就在這條曲線。`;
+}
+
+/* ══ 飛行包絡線:高度–速度走廊 ═════════════════════════════════════════
+   滑翔載具的包絡線是一條**走廊**,不是一塊區域:
+
+     上界(升力)  ½ρv²C_L,max = (W/S)·g·(1 − v²/v_c²)
+                  再高則空氣太薄,升力撐不住 -> 沉下去變成彈道。
+     下界(熱)    機腹輻射平衡壁溫 = 材料上限
+                  再低則熱通量太大(q ∝ √ρ·v³)。
+     下界(動壓)  q = ½ρv² = 上限,結構與氣動控制的限制。
+
+   三條線都只跟「密度」有關,所以可以統一先解出所需密度、再反查高度。
+   **這是一階模型**:沒有配平限制、沒有橫向機動、沒有暫態熱容,
+   真實包絡線要靠氣動資料庫與熱結構分析。                        */
+const CL_MAX = 1.2;            // 高超音速配平可用的最大升力係數
+const T_TPS_C = 1200;          // 可重複使用熱防護的典型壁溫上限(C/SiC 級)
+const T_HOT_C = 1600;          // 燒蝕/RCC 級材料
+const Q_MAX_PA = 20000;        // 動壓上限,結構與控制
+
+function altForDensity(rho){
+  if (!(rho > 0)) return 130000;
+  let lo = 0, hi = 130000;
+  for (let i = 0; i < 60; i++){
+    const m = (lo+hi)/2;
+    if (us76Density(m) > rho) lo = m; else hi = m;
+  }
+  return (lo+hi)/2;
+}
+function liftCeilingAlt(v, wl, cl){
+  const eff = Math.max(0, 1 - (v/V_CIRC_SURF)**2);
+  const need = wl*G0*eff;
+  if (need <= 0 || v <= 0) return 130000;
+  return altForDensity(2*need/(cl*v*v));
+}
+function altForWallTemp(v, tC){
+  if (v <= 0) return 0;
+  const q = EMIS*SIGMA_SB*Math.pow(tC + 273.15, 4);   // 機腹所需熱通量
+  const rho = Math.pow(q/(BELLY_F*K_SG*v**3), 2)*NOSE_R;
+  return altForDensity(rho);
+}
+function altForQ(v, qPa){ return v > 0 ? altForDensity(2*qPa/(v*v)) : 0; }
+
+function drawEnvelope(C){
+  const cv = document.getElementById('envelope');
+  const {g, w, h} = setup(cv);
+  const pad = {l:66, r:16, t:16, b:48};
+  const vHi = Math.max(7000, Math.ceil(C.vEntryArc/500)*500 + 500);
+  const aHi = 95;
+  const box = {
+    l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
+    x:q => pad.l + (w-pad.l-pad.r)*(q/vHi),
+    y:q => (h-pad.b) - (h-pad.t-pad.b)*(q/aHi),
+  };
+  axes(g, box, ticks(0, vHi, 7, q => fmt(q/1000,1)),
+       ticks(0, aHi, 5, q => fmt(q)),
+       '真實空速(km/s)', '高度(km)');
+
+  const N = 180, vs = [];
+  for (let i = 0; i <= N; i++) vs.push(Math.max(60, vHi*i/N));
+
+  const top = vs.map(v => liftCeilingAlt(v, S.wl, CL_MAX));
+  const hot = vs.map(v => altForWallTemp(v, T_TPS_C));
+  const dyn = vs.map(v => altForQ(v, Q_MAX_PA));
+  const bot = vs.map((v,i) => Math.max(hot[i], dyn[i]));
+  const des = vs.map(v => liftCeilingAlt(v, S.wl, CL_GLIDE));
+
+  // 走廊填色:上界與下界之間
+  g.beginPath();
+  let started = false;
+  vs.forEach((v,i) => {
+    if (top[i] <= bot[i]) return;
+    const x = box.x(v), y = box.y(Math.min(aHi, top[i]/1000));
+    started ? g.lineTo(x,y) : g.moveTo(x,y); started = true;
+  });
+  for (let i = vs.length-1; i >= 0; i--){
+    if (top[i] <= bot[i]) continue;
+    g.lineTo(box.x(vs[i]), box.y(Math.min(aHi, bot[i]/1000)));
+  }
+  g.closePath();
+  g.fillStyle = css('--accent'); g.globalAlpha = 0.10; g.fill();
+  g.globalAlpha = 1;
+
+  const curve = (arr, col, wid, dash) => {
+    g.strokeStyle = css(col); g.lineWidth = wid; g.setLineDash(dash||[]);
+    g.beginPath(); let st = false;
+    vs.forEach((v,i) => {
+      const a = arr[i]/1000;
+      if (!isFinite(a) || a > aHi*1.05) { st = false; return; }
+      const x = box.x(v), y = box.y(Math.min(aHi, a));
+      st ? g.lineTo(x,y) : g.moveTo(x,y); st = true;
+    });
+    g.stroke(); g.setLineDash([]);
+  };
+  curve(top, '--tj-glide', 2.4);                       // 升力上界
+  curve(hot, '--tj-skip', 2.4);                        // 熱下界
+  curve(vs.map(v => altForWallTemp(v, T_HOT_C)), '--tj-skip', 1.3, [5,4]);
+  curve(dyn, '--tj-ball', 1.8, [8,5]);                 // 動壓下界
+  curve(des, '--accent', 1.6, [3,3]);                  // 設計滑翔線
+
+  // 卡門線
+  g.strokeStyle = css('--muted'); g.lineWidth = 1; g.setLineDash([2,4]);
+  g.beginPath(); g.moveTo(box.l, box.y(100 > aHi ? aHi : 100));
+  g.lineTo(box.r, box.y(Math.min(aHi,100))); g.stroke(); g.setLineDash([]);
+
+  // Aviator 可解速度界線 —— 工具邊界畫在物理圖上
+  if (TAS_LIMIT < vHi){
+    const xl = box.x(TAS_LIMIT);
+    g.fillStyle = css('--warn'); g.globalAlpha = 0.10;
+    g.fillRect(xl, box.t, box.r - xl, box.b - box.t);
+    g.globalAlpha = 1;
+    g.strokeStyle = css('--warn'); g.lineWidth = 1.6; g.setLineDash([5,4]);
+    g.beginPath(); g.moveTo(xl, box.t); g.lineTo(xl, box.b); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = css('--warn'); g.textAlign = 'left'; g.textBaseline = 'top';
+    g.font = '11.5px "IBM Plex Mono", monospace';
+    g.fillText('Aviator 解不出來', xl + 6, box.t + 6);
+  }
+
+  // 實際軌跡
+  const tl = buildTimeline(C);
+  g.strokeStyle = css('--ink'); g.lineWidth = 3.2; g.beginPath();
+  tl.forEach((d,i) => {
+    const x = box.x(Math.min(vHi, d.v)), y = box.y(Math.min(aHi, d.alt/1000));
+    i ? g.lineTo(x,y) : g.moveTo(x,y);
+  });
+  g.stroke();
+  // 進入點
+  const e0 = tl[0];
+  g.fillStyle = css('--trace');
+  g.beginPath(); g.arc(box.x(Math.min(vHi,e0.v)), box.y(e0.alt/1000), 5.5, 0, 7);
+  g.fill(); g.strokeStyle = css('--surface'); g.lineWidth = 2; g.stroke();
+
+  // 圖例
+  const leg = [['--ink','實際軌跡', 3.2, []],
+               ['--tj-glide', `升力上界 C_L ${fmt(CL_MAX,1)}`, 2.4, []],
+               ['--accent', `設計滑翔線 C_L ${fmt(CL_GLIDE,1)}`, 1.6, [3,3]],
+               ['--tj-skip', `熱 ${fmt(T_TPS_C)} °C`, 2.4, []],
+               ['--tj-skip', `熱 ${fmt(T_HOT_C)} °C`, 1.3, [5,4]],
+               ['--tj-ball', `動壓 ${fmt(Q_MAX_PA/1000)} kPa`, 1.8, [8,5]]];
+  g.font = '12px "IBM Plex Sans", sans-serif';
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillStyle = css('--surface'); g.globalAlpha = 0.86;
+  g.fillRect(box.l+8, box.t+6, 214, leg.length*18 + 8);
+  g.globalAlpha = 1;
+  leg.forEach((L_,i) => {
+    const y = box.t + 18 + i*18;
+    g.strokeStyle = css(L_[0]); g.lineWidth = L_[2]; g.setLineDash(L_[3]);
+    g.beginPath(); g.moveTo(box.l+16, y); g.lineTo(box.l+42, y); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = css('--ink'); g.fillText(L_[1], box.l+50, y);
+  });
+
+  // ── 讀數 ────────────────────────────────────────────────────────
+  let tPeak = -999, vPeak = 0, outside = 0;
+  tl.forEach(d => {
+    if (d.temp > tPeak){ tPeak = d.temp; vPeak = d.v; }
+    const lo = Math.max(altForWallTemp(d.v, T_TPS_C), altForQ(d.v, Q_MAX_PA));
+    const up = liftCeilingAlt(d.v, S.wl, CL_MAX);
+    if (d.alt < lo - 1 || d.alt > up + 1) outside++;
+  });
+  // 走廊最窄處
+  let narrow = 1e9, vNarrow = 0;
+  vs.forEach((v,i) => {
+    if (v < 800 || v > C.vEntryArc) return;
+    const wdt = top[i] - bot[i];
+    if (wdt < narrow){ narrow = wdt; vNarrow = v; }
+  });
+  const rows = [
+    ['進入點', fmt(C.vEntryArc)+' m/s @ '+fmt(e0.alt/1000,1)+' km', false],
+    ['機腹峰值壁溫', fmt(tPeak)+' °C', tPeak > T_TPS_C],
+    ['熱防護假設上限', fmt(T_TPS_C)+' °C', false],
+    ['走廊最窄處', narrow > 0 ? fmt(narrow/1000,1)+' km @ '+fmt(vNarrow)+' m/s'
+                              : '走廊封閉', narrow <= 0],
+    ['軌跡落在走廊外的取樣點', fmt(outside)+' / '+fmt(tl.length),
+     outside > 0],
+    ['Aviator 可解區', C.vEntryArc > TAS_LIMIT
+       ? '不足 '+fmt(C.seam)+' m/s' : '全程可解', C.vEntryArc > TAS_LIMIT],
+  ];
+  document.getElementById('envRead').innerHTML = rows.map(r =>
+    `<div><dt>${r[0]}</dt><dd class="${r[2] ? 'hi':''}">${r[1]}</dd></div>`).join('');
+
+  document.getElementById('envCap').innerHTML =
+    `淡藍色是可飛的走廊,黑線是本頁設計點實際走的軌跡。
+     ${tPeak > T_TPS_C
+       ? `注意進入段:機腹峰值 <strong style="color:var(--crit)">${fmt(tPeak)} °C</strong>
+          高於 ${fmt(T_TPS_C)} °C 的可重複使用上限,
+          軌跡在那裡<strong>壓到熱邊界之下</strong> ——
+          這正是包絡線圖的用處:把約束畫出來就看得見。
+          解法有三個:降翼負荷(飛更高)、換更耐熱的材料、
+          或提高升阻比把進入速度壓下來。`
+       : `全程都在走廊內,峰值壁溫 <strong>${fmt(tPeak)} °C</strong>。`}
+     <br>走廊在高速端最窄:速度愈高,升力上界與熱下界愈靠近 ——
+     這就是「再入走廊」這個詞的由來,也是為什麼再入是整條任務最難的一段。
+     <br><em>三條邊界都是一階模型:沒有配平限制、沒有橫向機動、
+     沒有暫態熱容。真實包絡線要靠氣動資料庫與熱結構分析。</em>`;
+}
+
+/* ══ 設計迴圈 ══════════════════════════════════════════════════════════
+   把「改一個變數會牽動全部」做成可量化的一圈。
+   走法:射程 +10% -> 看 Δv、質量比、酬載分數怎麼動 ->
+         要把酬載分數補回原值需要多少升阻比 -> 高升阻比的代價。
+
+   酬載質量分數用每節 λ = (1/R − ε)/(1 − ε) 相乘,ε 是結構係數。
+   **ε 是假設值**,不是本頁其他地方推導出來的。                 */
+const STRUCT_EPS = 0.08;
+
+function payloadFraction(dv){
+  const R1 = massRatio(dv*S.split, S.isp1);
+  const R2 = massRatio(dv*(1-S.split), S.isp2);
+  if (!isFinite(R1) || !isFinite(R2)) return 0;
+  const l1 = (1/R1 - STRUCT_EPS)/(1 - STRUCT_EPS);
+  const l2 = (1/R2 - STRUCT_EPS)/(1 - STRUCT_EPS);
+  return (l1 > 0 && l2 > 0) ? l1*l2 : 0;
+}
+
+function renderLoop(C){
+  const F = 1.10;
+  const r0 = S.range*1000, r1 = r0*F;
+  const assist = rotAssist();
+  const dvOf = (range, ld) => boostGlide(range, ld, S.wl).v_bo + S.loss - assist;
+  const mrOf = dv => massRatio(dv*S.split, S.isp1)*massRatio(dv*(1-S.split), S.isp2);
+
+  const dv0 = C.dvTotal, dv1 = dvOf(r1, S.ld);
+  const m0 = mrOf(dv0), m1 = mrOf(dv1);
+  const p0 = payloadFraction(dv0), p1 = payloadFraction(dv1);
+
+  // 要把酬載分數補回 p0,升阻比要多高
+  let lo = S.ld, hi = 25, ok = payloadFraction(dvOf(r1, hi)) >= p0;
+  if (ok){
+    for (let k = 0; k < 22; k++){
+      const m = (lo+hi)/2;
+      if (payloadFraction(dvOf(r1, m)) < p0) lo = m; else hi = m;
+    }
+  }
+  const ldNeed = ok ? (lo+hi)/2 : NaN;
+
+  // 高升阻比的代價:乘波體靠銳前緣拿升阻比,而 q ∝ 1/√R_n
+  const rnOf = ld => NOSE_R*(S.ld/ld);      // **假設**:前緣半徑與 L/D 成反比
+  const bgN = boostGlide(r1, isFinite(ldNeed) ? ldNeed : S.ld, S.wl);
+  const rhoN = us76Density(equilibriumGlideAlt(bgN.v_entry, S.wl));
+  const tNow = bellyTempC(us76Density(equilibriumGlideAlt(C.vEntryArc, S.wl)),
+                          C.vEntryArc);
+  const rn1 = isFinite(ldNeed) ? rnOf(ldNeed) : NOSE_R;
+  const qFac = Math.sqrt(NOSE_R/Math.max(1e-3, rn1));
+  const tNew = (tNow + 273.15)*Math.pow(qFac, 0.25) - 273.15;
+
+  const dlt = (a, b, unit, d=0, inverted=false) => {
+    const up = b > a;
+    const cls = (up !== inverted) ? 'up' : 'dn';
+    const sign = up ? '+' : '';
+    return `<b>${fmt(b, d)}${unit}</b><span class="${cls}">`
+         + `${sign}${fmt(b-a, d)} vs ${fmt(a, d)}</span>`;
+  };
+
+  const steps = [
+    ['射程', `設計射程 +${fmt((F-1)*100)}%`,
+     '這是唯一被「手動」改動的量。下面每一格都是它的後果。',
+     `<b>${fmt(r1/1000)} km</b><span>原 ${fmt(r0/1000)} km</span>`],
+    ['Δv', '所需速度增量上升',
+     '熄火速度由自洽閉合解出,再加上重力/轉向損失、扣掉地球自轉助益。'
+     + '射程與 Δv <b>不是</b>線性關係。',
+     dlt(dv0, dv1, ' m/s')],
+    ['R', '質量比呈指數放大',
+     '火箭方程的 Δv 在 ln 裡,反過來看質量比就是 <b>e 的指數</b>。'
+     + `Δv 多 ${fmt(dv1-dv0)} m/s,質量比不是多幾個百分點。`,
+     dlt(m0, m1, ' : 1', 1)],
+    ['λ', '留給機翼與酬載的重量被壓縮',
+     `以結構係數 ε = ${fmt(STRUCT_EPS,2)} 估每節的酬載分數並相乘。`
+     + '這一格是整個迴圈最痛的地方 —— 它會先歸零,而不是慢慢變小。',
+     dlt(p0*100, p1*100, ' %', 2, true)],
+    ['L/D', '必須提高升阻比才補得回來',
+     '升阻比提高會降低所需熄火速度,把 Δv 與質量比拉回去。'
+     + '這是唯一不必增加推進劑就能補償射程的槓桿。',
+     isFinite(ldNeed)
+       ? dlt(S.ld, ldNeed, '', 2)
+       : '<b>補不回來</b><span class="up">升阻比 25 仍不足</span>'],
+    ['熱', '但高升阻比的代價在熱',
+     '高超音速要拿到高升阻比得靠<b>銳前緣</b>,而駐點熱通量 q ∝ 1/√R_n ——'
+     + '前緣愈銳、熱負荷愈高。滑翔時間也變長,總熱負荷跟著上升。'
+     + '<br><em>此處前緣半徑與 L/D 成反比是<b>假設</b>,非本頁推導。</em>',
+     isFinite(ldNeed)
+       ? dlt(tNow, tNew, ' °C')
+       : '<b>—</b><span>前一步已不可行</span>'],
+  ];
+
+  document.getElementById('designLoop').innerHTML =
+    steps.map((st, i) => `
+      <div class="lp">
+        <div class="idx">${String(i+1).padStart(2,'0')}</div>
+        <div><h4>${st[1]}</h4><p>${st[2]}</p></div>
+        <div class="num">${st[3]}</div>
+      </div>`).join('')
+    + `<div class="back">└─ 回到 01:新的升阻比改變了外型、重量與熱防護,
+        於是 Δv、質量比與酬載分數全部要重算 —— 再走一圈。</div>`;
+
+  document.getElementById('loopEnd').innerHTML =
+    `這個迴圈不會自己停下來,<strong>是設計者選一個停的地方</strong>。
+     實務上的收斂條件是「再走一圈,所有量的變化都小於容差」,
+     而能不能收斂取決於<strong>有沒有一個同時滿足所有約束的點</strong>。
+     ${isFinite(ldNeed)
+        ? `目前這一圈:射程 +${fmt((F-1)*100)}% 要靠升阻比從
+           <strong>${fmt(S.ld,1)}</strong> 提高到 <strong>${fmt(ldNeed,2)}</strong>
+           才守得住酬載分數,代價是機腹壁溫由 <strong>${fmt(tNow)} °C</strong>
+           升到 <strong>${fmt(tNew)} °C</strong>。
+           ${tNew > T_TPS_C
+              ? `而這已經超過 ${fmt(T_TPS_C)} °C 的可重複使用上限 ——
+                 <strong>這一圈沒有收斂</strong>,必須回頭改別的東西:
+                 降翼負荷、換材料,或者接受較小的酬載。`
+              : `仍在 ${fmt(T_TPS_C)} °C 的上限內,這一圈<strong>收斂</strong>。`}`
+        : `目前這一圈<strong>沒有解</strong> —— 即使升阻比拉到 25,
+           酬載分數也回不到原值。射程 +${fmt((F-1)*100)}% 在這組其他參數下
+           做不到,必須改比衝、分節或結構係數。`}
+     <br><em>這裡只走了一圈、只動一個變數。真實的設計迴圈是多變數同時疊代,
+     而且每一格背後都是一整個專業團隊。</em>`;
 }
 
 /* ══ 乘波體與三種彈道 ══════════════════════════════════════════════════
