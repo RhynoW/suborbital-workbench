@@ -8,6 +8,7 @@
   --trace:#C2600C; --trace-soft:#F7ECE0;
   --good:#166534; --warn:#9A6206; --crit:#A32118;
   --grid:#DCE2E9;
+  --tj-glide:#0B5FD0; --tj-skip:#D1490B; --tj-ball:#2A3441;
   --sans:"IBM Plex Sans","Noto Sans TC",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
@@ -20,6 +21,7 @@
     --trace:#E8913A; --trace-soft:#2C2015;
     --good:#4ADE80; --warn:#FBBF24; --crit:#F87171;
     --grid:#232D38;
+    --tj-glide:#6AB4FF; --tj-skip:#FF9A4D; --tj-ball:#DCE3EC;
   }
 }
 :root[data-theme="dark"]{
@@ -30,6 +32,7 @@
   --trace:#E8913A; --trace-soft:#2C2015;
   --good:#4ADE80; --warn:#FBBF24; --crit:#F87171;
   --grid:#232D38;
+  --tj-glide:#6AB4FF; --tj-skip:#FF9A4D; --tj-ball:#DCE3EC;
 }
 
 *{box-sizing:border-box}
@@ -283,6 +286,19 @@ td.num{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:n
 }
 .ctlbar label{font-size:12.5px; color:var(--muted); display:flex;
   align-items:center; gap:6px}
+.bigeq{margin-top:20px; padding:20px 22px; background:var(--surface);
+  border-left:3px solid var(--accent); overflow-x:auto}
+.bigeq b{display:block; font-family:var(--mono); font-size:19px;
+  font-weight:500; letter-spacing:.01em; white-space:nowrap}
+.bigeq i{display:block; font-style:normal; font-family:var(--mono);
+  font-size:14px; color:var(--ink-2); margin-top:9px; white-space:nowrap}
+.bigeq small{display:block; font-size:12.5px; color:var(--muted);
+  margin-top:12px; line-height:1.65; max-width:68ch}
+.wrctl{margin-top:20px; display:grid; gap:1px; background:var(--line);
+  border:1px solid var(--line);
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.gloss-en{display:block; color:var(--muted); font-size:11.5px;
+  font-family:var(--sans); margin-top:2px}
 .readout{
   display:grid; grid-template-columns:repeat(2,1fr); gap:1px;
   background:var(--line); border:1px solid var(--line); border-radius:3px;
@@ -419,9 +435,69 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
   </figure>
 </section>
 
+<!-- ── 火箭方程 ─────────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>火箭方程:從水火箭到次軌道</h2></div>
+  <p class="sec-note">
+    前面算出來的熄火速度要從哪裡來?答案是一條 1903 年就寫下的式子 ——
+    <strong>齊奧爾科夫斯基火箭方程</strong>。它短到可以寫在一行,
+    而那個 <strong>ln</strong> 決定了火箭為什麼非分節不可。
+    小學生用寶特瓶做的水火箭,和這個任務的兩節火箭,
+    <strong>用的是同一條方程</strong> —— 差別只在代進去的兩個數字。
+  </p>
+
+  <div class="bigeq">
+    <b>Δv = v_e · ln( m₀ / m_f ) = I_sp · g₀ · ln R</b>
+    <i>v_e 排氣速度 &nbsp;·&nbsp; m₀ 起飛質量 &nbsp;·&nbsp; m_f 燒完後質量 &nbsp;·&nbsp; R 質量比</i>
+    <small>
+      左邊是任務要求的速度增量,右邊只有兩件事:<strong>噴得多快</strong>(v_e,
+      或換算成比衝 I_sp)與<strong>帶了多少推進劑</strong>(質量比 R)。
+      推進劑進到 ln 裡面 —— 這是整條式子最重要的一點:
+      推進劑加倍,Δv 只增加 v_e·ln2,大約 0.69 倍的排氣速度,加到後來幾乎沒有回報。
+      提高排氣速度則是<strong>線性</strong>地放大 Δv。
+    </small>
+  </div>
+
+  <h3 style="margin-top:30px; font-size:17px">先用水火箭把三個量握在手上</h3>
+  <p class="sec-note">
+    寶特瓶裝水、打氣、拔塞子。推進劑是<strong>水</strong>,
+    壓縮空氣只是能量來源 —— 這件事一講就通,但很多人第一次會猜反。
+    水被壓出去時的速度可以用白努利式估:v_e = √(2Δp/ρ),
+    而瓶內氣體一邊膨脹一邊降壓,所以 v_e 是<strong>一路下降</strong>的,
+    要逐步積分而不是拿一個平均值乘一乘。
+  </p>
+
+  <div class="wrctl">
+    <div class="ctl">
+      <label for="wr_fill">灌水量占瓶子體積 <b id="wr_fill_o"></b></label>
+      <input type="range" id="wr_fill" min="0.05" max="0.80" step="0.01" value="0.33"
+             aria-label="灌水量占瓶子體積">
+      <div class="hint">水是推進劑,但也占掉空氣的體積。兩邊拉扯,所以有最佳值。</div>
+    </div>
+    <div class="ctl">
+      <label for="wr_p">打氣壓力(錶壓) <b id="wr_p_o"></b></label>
+      <input type="range" id="wr_p" min="2" max="10" step="0.5" value="6"
+             aria-label="打氣壓力">
+      <div class="hint">腳踏打氣筒大約打得到 4–7 bar。寶特瓶的爆破壓力約 10–12 bar。</div>
+    </div>
+  </div>
+
+  <figure>
+    <div class="plot"><canvas id="water" width="1120" height="360"></canvas></div>
+    <figcaption id="waterCap"></figcaption>
+  </figure>
+
+  <dl class="readout" id="wrRead"></dl>
+
+  <div class="callout">
+    <h3>把水火箭的比衝換成火箭的比衝</h3>
+    <p id="wrBridge"></p>
+  </div>
+</section>
+
 <!-- ── 3 兩條曲線 ───────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">04</span><h2>兩個反直覺的關係</h2></div>
+  <div class="sec-head"><span class="sec-num">05</span><h2>兩個反直覺的關係</h2></div>
   <p class="sec-note">
     學生最常誤判的兩件事:以為「加機翼一定有利」,以及低估質量比對 Δv 的敏感度。
     這兩張圖各針對一個。
@@ -440,7 +516,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 3D 外型與流場 ────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">04</span><h2>外型與 Mach 20 的流場</h2></div>
+  <div class="sec-head"><span class="sec-num">06</span><h2>外型與 Mach 20 的流場</h2></div>
   <p class="sec-note">
     這是本專案用參數化建模產生的太空飛機外型(機身斷面管、NACA 厚度的三角翼、
     垂尾與機身襟翼),直接載入 STK 用的同一份網格 ——
@@ -478,7 +554,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 乘波體與三種彈道 ─────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">05</span><h2>乘波體、錢學森彈道、桑格爾彈道</h2></div>
+  <div class="sec-head"><span class="sec-num">07</span><h2>乘波體、錢學森彈道、桑格爾彈道</h2></div>
   <p class="sec-note">
     這三個名詞常被混用,但它們回答的不是同一個問題。
     <strong>乘波體是「外型」,另外兩個是「軌跡」</strong> ——
@@ -495,7 +571,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 4 工程因子 ───────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">06</span><h2>十個必須計算的工程因子</h2></div>
+  <div class="sec-head"><span class="sec-num">08</span><h2>十個必須計算的工程因子</h2></div>
   <p class="sec-note">
     每一格是一個必須算、而且會和其他因子打架的量。下緣是目前設計點的值,
     最後一行是它的設計張力 —— 也就是為什麼不能只往一個方向最佳化。
@@ -505,7 +581,7 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
 
 <!-- ── 5 工具邊界 ───────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">07</span><h2>工具的能力邊界也是設計條件</h2></div>
+  <div class="sec-head"><span class="sec-num">09</span><h2>工具的能力邊界也是設計條件</h2></div>
   <p class="sec-note">
     以 STK 12 實機量測的結果。工程師要知道工具在哪裡停下來 ——
     模擬跑得出數字不等於那個數字有效。
@@ -536,6 +612,39 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
       再看數值。</strong> 這個習慣比記住任何一條公式都重要。
     </p>
   </div>
+</section>
+
+<!-- ── 名詞對照 ─────────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">10</span><h2>名詞對照</h2></div>
+  <p class="sec-note">
+    這一節不推導,只把前面用到的符號一次列清楚,並附上<strong>最常見的誤解</strong> ——
+    那一欄比定義欄有用。「本頁的值」會跟著上面的滑桿一起變。
+  </p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr>
+        <th style="width:8%">符號</th><th style="width:17%">名稱</th>
+        <th style="width:22%">定義</th><th class="num" style="width:15%">本頁的值</th>
+        <th>最常見的誤解</th>
+      </tr></thead>
+      <tbody id="glossTbl"></tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:34px; font-size:17px">為什麼馬赫數要單獨拿出來講</h3>
+  <p class="sec-note">
+    馬赫數不是速度,是<strong>速度與當地音速的比</strong>,
+    而音速 a = √(γRT) <strong>只跟溫度有關</strong> —— 不直接跟高度或密度有關。
+    大氣溫度隨高度起伏(平流層頂 47–51 km 因為臭氧吸收紫外線反而是暖的),
+    所以<strong>同一個真實空速,在不同高度是不同的馬赫數</strong>,而且不是單調的。
+  </p>
+
+  <figure>
+    <div class="plot"><canvas id="machAlt" width="1120" height="360"></canvas></div>
+    <figcaption id="machCap"></figcaption>
+  </figure>
 </section>
 
 <footer>
@@ -732,6 +841,19 @@ SPEC.forEach(s => {
     S[s.k] = parseFloat(ev.target.value); render();
   });
 });
+// 水火箭的兩個滑桿只影響它自己那一節,所以不走全域 render()
+[['wr_fill','fill',v=>fmt(v*100)+' %'],
+ ['wr_p','p',v=>fmt(v,1)+' bar']].forEach(([id, key, show]) => {
+  const el = document.getElementById(id);
+  const out = document.getElementById(id + '_o');
+  out.textContent = show(WR[key]);
+  el.addEventListener('input', ev => {
+    WR[key] = parseFloat(ev.target.value);
+    out.textContent = show(WR[key]);
+    if (LASTC) drawWater(LASTC);
+  });
+});
+
 document.getElementById('reset').addEventListener('click', () => {
   Object.assign(S, DEFAULTS);
   SPEC.forEach(s => { document.getElementById('s_'+s.k).value = S[s.k]; });
@@ -765,6 +887,7 @@ function compute(){
           apogee: bg.apogee, ldSeamFree};
 }
 
+let LASTC = null;
 function render(){
   SPEC.forEach(s => {
     const v = S[s.k];
@@ -772,6 +895,7 @@ function render(){
     document.getElementById('o_'+s.k).textContent = fmt(v, d) + (s.unit ? ' '+s.unit : '');
   });
   const C = compute();
+  LASTC = C;
 
   document.getElementById('mission').innerHTML = [
     ['航線', `旭海 → KEFD`],
@@ -882,6 +1006,9 @@ function render(){
   renderLayers(C);
   renderConcepts(C);
   drawTraj3(C);
+  drawWater(C);
+  renderGlossary(C);
+  drawMachAlt(C);
   draw3D();
   renderFactors(C);
   renderTables();
@@ -1142,6 +1269,287 @@ document.querySelectorAll('.seg button').forEach(b => {
   cv.addEventListener('pointercancel', up);
 })();
 
+/* ══ 火箭方程與水火箭 ══════════════════════════════════════════════════
+   水火箭與運載火箭用的是同一條齊奧爾科夫斯基方程,只是代入的
+   v_e 與 R 差了兩個數量級。這裡把水火箭真的積分一次,
+   因為 v_e 會隨瓶內壓力下降,拿平均值乘一乘會高估。
+
+   模型:水是推進劑,瓶內空氣絕熱膨脹 p·V^1.4 = 定值,
+         排氣速度取不可壓縮的白努利解 v_e = √(2Δp/ρ)。
+   **不含**阻力、水膜殘留與兩相噴出,所以頂點高度是理想上限。   */
+const RHO_W = 1000, P_ATM = 101325;
+const V_BOTTLE = 2.0e-3;      // 2 公升寶特瓶
+const M_DRY = 0.100;          // 空瓶 + 鼻錐 + 尾翼,約 100 公克
+const GAMMA_AIR = 1.4, R_AIR = 287.053;
+const WR = {fill:0.33, p:6.0};
+
+function waterRocket(fill, pBar){
+  const Va0 = V_BOTTLE*(1 - fill);
+  const mW0 = RHO_W*V_BOTTLE*fill;
+  const p0  = pBar*1e5 + P_ATM;          // 絕對壓力
+  const N = 800, dV = (V_BOTTLE - Va0)/N;
+  let m = M_DRY + mW0, dv = 0, veHi = 0, veLo = Infinity, allOut = true;
+  for (let k = 0; k < N; k++){
+    const Va = Va0 + dV*k;
+    const p  = Va0 > 0 ? p0*Math.pow(Va0/Va, GAMMA_AIR) : 0;
+    const dp = p - P_ATM;
+    if (dp <= 0){ allOut = false; break; }   // 壓力先用完,水沒排完
+    const ve = Math.sqrt(2*dp/RHO_W);
+    const dm = RHO_W*dV;
+    dv += ve*dm/m;                            // dΔv = v_e · dm/m
+    m  -= dm;
+    if (ve > veHi) veHi = ve;
+    if (ve < veLo) veLo = ve;
+  }
+  const R = (M_DRY + mW0)/Math.max(1e-9, m);
+  const lnR = Math.log(Math.max(1.0000001, R));
+  const veEff = lnR > 1e-6 ? dv/lnR : 0;
+  return {dv, R, m0:M_DRY + mW0, mf:m, allOut,
+          veHi, veLo:isFinite(veLo) ? veLo : 0,
+          veEff, isp:veEff/G0, apex:dv*dv/(2*G0)};
+}
+
+function drawWater(C){
+  const cv = document.getElementById('water');
+  const {g, w, h} = setup(cv);
+  const pad = {l:66, r:16, t:16, b:48};
+  const fLo = 0.02, fHi = 0.86;
+  // 縱軸上界由最高壓力決定,換壓力時軸不會跳動
+  let vHi = 0;
+  for (let f = fLo; f <= fHi; f += 0.01) vHi = Math.max(vHi, waterRocket(f, 10).dv);
+  vHi = Math.ceil(vHi/10)*10;
+  const box = {
+    l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
+    x:v => pad.l + (w-pad.l-pad.r)*((v-fLo)/(fHi-fLo)),
+    y:v => (h-pad.b) - (h-pad.t-pad.b)*(v/vHi),
+  };
+  axes(g, box, ticks(fLo, fHi, 6, v => fmt(v*100)+'%'),
+       ticks(0, vHi, 5, v => fmt(v)),
+       '灌水量占瓶子體積', 'Δv(m/s)');
+
+  // 其他壓力的對照線
+  [2,4,6,8,10].forEach(pb => {
+    if (Math.abs(pb - WR.p) < 0.26) return;
+    g.strokeStyle = css('--muted'); g.globalAlpha = 0.38;
+    g.lineWidth = 1.2; g.beginPath();
+    let st = false;
+    for (let f = fLo; f <= fHi; f += 0.005){
+      const d = waterRocket(f, pb).dv;
+      st ? g.lineTo(box.x(f), box.y(d)) : g.moveTo(box.x(f), box.y(d));
+      st = true;
+    }
+    g.stroke(); g.globalAlpha = 1;
+    const dEnd = waterRocket(fHi, pb).dv;
+    g.fillStyle = css('--muted'); g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.font = '11px "IBM Plex Mono", monospace';
+    g.fillText(pb + ' bar', box.r - 4, box.y(dEnd) - 8);
+  });
+
+  // 目前壓力
+  let best = {f:fLo, dv:-1};
+  g.strokeStyle = css('--accent'); g.lineWidth = 3; g.beginPath();
+  let st = false;
+  for (let f = fLo; f <= fHi; f += 0.004){
+    const d = waterRocket(f, WR.p).dv;
+    if (d > best.dv) best = {f, dv:d};
+    st ? g.lineTo(box.x(f), box.y(d)) : g.moveTo(box.x(f), box.y(d));
+    st = true;
+  }
+  g.stroke();
+
+  // 最佳灌水量
+  g.strokeStyle = css('--good'); g.setLineDash([4,3]); g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(box.x(best.f), box.y(best.dv)); g.lineTo(box.x(best.f), box.b);
+  g.stroke(); g.setLineDash([]);
+  g.fillStyle = css('--good'); g.textAlign = 'center'; g.textBaseline = 'bottom';
+  g.font = '11.5px "IBM Plex Mono", monospace';
+  g.fillText('最佳 ' + fmt(best.f*100) + '%', box.x(best.f), box.y(best.dv) - 8);
+
+  // 目前設定
+  const cur = waterRocket(WR.fill, WR.p);
+  g.fillStyle = css('--trace');
+  g.beginPath(); g.arc(box.x(WR.fill), box.y(cur.dv), 5.5, 0, 7); g.fill();
+  g.strokeStyle = css('--surface'); g.lineWidth = 2; g.stroke();
+
+  document.getElementById('waterCap').innerHTML =
+    `每條線是一個打氣壓力。<strong>灌太少</strong>推進劑不夠,
+     <strong>灌太多</strong>則空氣膨脹的空間被占走、壓力掉得快 ——
+     所以曲線有一個峰,目前壓力下落在 <strong>${fmt(best.f*100)}%</strong> ——
+     水火箭比賽常說的「灌三分之一上下」就是這個峰,
+     而且峰的位置會隨壓力往右移(壓力愈高,愈值得多帶水)。
+     這個取捨和火箭工程裡「多帶推進劑 vs 結構質量跟著上升」是同一件事。
+     <br><em>模型不含空氣阻力與水膜殘留,所以頂點高度是理想上限;
+     實際量到的通常只有一半到三分之一,那個差額本身就是很好的討論題目。</em>`;
+
+  const rows = [
+    ['排氣速度 起→終', fmt(cur.veHi) + ' → ' + fmt(cur.veLo) + ' m/s', false],
+    ['質量比 R', fmt(cur.R, 2) + ' : 1', false],
+    ['Δv', fmt(cur.dv) + ' m/s', true],
+    ['等效比衝 I_sp', fmt(cur.isp, 1) + ' s', false],
+    ['頂點高度(無阻力)', fmt(cur.apex) + ' m', false],
+    ['水是否排完', cur.allOut ? '排完' : '壓力先用完', !cur.allOut],
+  ];
+  document.getElementById('wrRead').innerHTML = rows.map(r =>
+    `<div><dt>${r[0]}</dt><dd class="${r[2] ? 'hi' : ''}">${r[1]}</dd></div>`).join('');
+
+  // 橋接到本頁任務
+  const need = C.dvTotal;
+  const ratio = S.isp1/Math.max(0.1, cur.isp);
+  const log10R = need/(G0*Math.max(0.1, cur.isp))/Math.LN10;
+  const log10M0 = log10R + Math.log10(M_DRY);
+  const single = massRatio(need, S.isp1);
+  document.getElementById('wrBridge').innerHTML =
+    `水火箭的等效比衝只有 <strong>${fmt(cur.isp,1)} 秒</strong>,
+     煤油/液氧是 <strong>${fmt(S.isp1)} 秒</strong> —— 差了
+     <strong>${fmt(ratio)} 倍</strong>。
+     但比衝坐在<strong>指數的分母</strong>裡,後果遠不只 ${fmt(ratio)} 倍:
+     若硬要用水火箭達成本頁任務的 Δv ${fmt(need)} m/s,質量比得是
+     <strong>10<sup>${fmt(log10R)}</sup></strong> —— 一個 100 公克的載具,
+     起飛質量要 <strong>10<sup>${fmt(log10M0)}</sup></strong> 公斤,
+     而可觀測宇宙的質量大約 10<sup>53</sup> 公斤。
+     換成 ${fmt(S.isp1)} 秒的比衝,單節質量比降到
+     <strong>${isFinite(single) && single < 1e4 ? fmt(single,1)+' : 1' : '仍然做不出來'}</strong>,
+     再分成兩節就是下一節圖裡的 <strong>${fmt(C.mrTot,1)} : 1</strong>。
+     <br><em>分節之所以有效,正是因為它讓已經空掉的結構不必繼續被後面的 ln 乘進去。</em>`;
+}
+
+/* ══ 名詞對照 ══════════════════════════════════════════════════════════
+   音速只跟溫度有關:a = √(γRT)。溫度用 US Std 1976 的分層,
+   與 spaceport_build.py 的 temperature() 同一組係數。            */
+const US76_T = [[0,288.15,-0.0065],[11000,216.65,0],[20000,216.65,0.001],
+                [32000,228.65,0.0028],[47000,270.65,0],[51000,270.65,-0.0028],
+                [71000,214.65,-0.002],[84852,186.946,0]];
+function us76Temp(hm){
+  const h = Math.min(Math.max(0, hm), 84852);
+  let b = US76_T[0];
+  for (const L of US76_T){ if (h >= L[0]) b = L; else break; }
+  return b[1] + b[2]*(h - b[0]);
+}
+function soundSpeed(hm){ return Math.sqrt(GAMMA_AIR*R_AIR*us76Temp(hm)); }
+
+function renderGlossary(C){
+  const vHo = TAS_LIMIT;
+  const altHo = equilibriumGlideAlt(vHo, S.wl);
+  const machHo = vHo/soundSpeed(altHo);
+  const gHo = gammaDeg(vHo, S.ld), aHo = alphaDeg(vHo, S.ld);
+  const rows = [
+    ['Δv', '速度增量', 'delta-v', 'Δv = I_sp·g₀·ln R',
+     fmt(C.dvTotal) + ' m/s',
+     '不等於熄火速度。重力與轉向損失會先吃掉一部分 —— 本頁假設 ' +
+     fmt(S.loss) + ' m/s,地球自轉又還回來 ' + fmt(C.assist) + ' m/s。'],
+    ['I_sp', '比衝', 'specific impulse', 'I_sp = v_e / g₀(單位:秒)',
+     fmt(S.isp1) + ' / ' + fmt(S.isp2) + ' s',
+     '不是推力。推力是 ṁ·v_e;比衝只管「每公斤推進劑換到多少動量」。' +
+     '它坐在指數的分母,所以比多帶推進劑有效得多。'],
+    ['R', '質量比', 'mass ratio', 'R = m₀ / m_f',
+     fmt(C.mrTot, 1) + ' : 1',
+     '以為 Δv 與 R 成正比。實際是 ln R:R 從 10 加到 20,Δv 只多 30%。'],
+    ['T/W', '推重比', 'thrust-to-weight ratio', '推力 / 起飛重量',
+     fmt(S.tw1, 2),
+     '不是愈大愈好。小於 1 離不了地,但太大會在稠密大氣裡加速過快,' +
+     '最大動壓與結構負荷跟著上去。'],
+    ['L/D', '升阻比', 'lift-to-drag ratio', '高超音速牛頓流:L/D = cot α',
+     fmt(S.ld, 1),
+     '不是「氣動好壞」的單一分數。高超音速要提高 L/D 就得壓低攻角,' +
+     '升力係數跟著掉,得用更低的翼負荷或更高的速度補回來。'],
+    ['Ma', '馬赫數', 'Mach number', 'Ma = v / a,a = √(γRT)',
+     fmt(machHo, 2) + ' @ ' + fmt(altHo/1000, 1) + ' km',
+     '馬赫數不是速度。音速只跟溫度有關,所以同一個真實空速在不同高度' +
+     '是不同的馬赫數 —— 見下圖。'],
+    ['W/S', '翼負荷', 'wing loading', '重量 / 機翼參考面積',
+     fmt(S.wl) + ' kg/m²',
+     '以為它只影響降落速度。在高超音速它決定平衡滑翔的高度,' +
+     '高度決定密度,密度直接進到熱通量裡。'],
+    ['γ', '飛行路徑角', 'flight path angle', '速度向量與當地水平面的夾角',
+     fmt(gHo, 2) + '°',
+     '以為「下降」就是機頭朝下。滑翔段 γ 只有零點幾度,幾乎是平的。'],
+    ['α', '攻角', 'angle of attack', '機體縱軸與速度向量的夾角',
+     fmt(aHo, 1) + '°',
+     '以為攻角等於俯仰角。兩者差一個 γ,而 γ 在滑翔段接近零,' +
+     '所以載具是<strong>機頭朝上十幾度在下降</strong>。'],
+    ['θ', '俯仰角', 'pitch angle', 'θ = γ + α',
+     fmt(gHo + aHo, 1) + '°',
+     '這是姿態,不是航跡。STK 的 Attitude 要的是 θ,軌跡要的是 γ。'],
+    ['v_c', '圓軌速度', 'circular orbital velocity', 'v_c = √(μ/r)',
+     fmt(V_CIRC_SURF) + ' m/s',
+     '次軌道不代表速度低。本頁的熄火速度已是 200 km 圓軌速度的 ' +
+     fmt(C.pctOrbital) + '%。'],
+    ['q̇', '駐點熱通量', 'stagnation heat flux', 'q̇ = k·√(ρ/R_n)·v³',
+     fmt(C.qRatio*100) + '% of 軌道再入',
+     '與速度的<strong>三次方</strong>成正比,不是平方。' +
+     '另外它常和動壓 q = ½ρv² 共用同一個字母,是兩回事。'],
+  ];
+  document.getElementById('glossTbl').innerHTML = rows.map(r => `
+    <tr>
+      <td class="num">${r[0]}</td>
+      <td>${r[1]}<span class="gloss-en">${r[2]}</span></td>
+      <td>${r[3]}</td>
+      <td class="num">${r[4]}</td>
+      <td>${r[5]}</td>
+    </tr>`).join('');
+}
+
+function drawMachAlt(C){
+  const cv = document.getElementById('machAlt');
+  const {g, w, h} = setup(cv);
+  const pad = {l:66, r:16, t:16, b:48};
+  const hHi = 86, v = TAS_LIMIT;
+  let mLo = 99, mHi = 0;
+  for (let k = 0; k <= hHi; k++){
+    const m = v/soundSpeed(k*1000);
+    mLo = Math.min(mLo, m); mHi = Math.max(mHi, m);
+  }
+  mLo = Math.floor(mLo) - 0.5; mHi = Math.ceil(mHi) + 0.5;
+  const box = {
+    l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
+    x:q => pad.l + (w-pad.l-pad.r)*(q/hHi),
+    y:q => (h-pad.b) - (h-pad.t-pad.b)*((q-mLo)/(mHi-mLo)),
+  };
+  axes(g, box, ticks(0, hHi, 6, q => fmt(q)),
+       ticks(mLo, mHi, 5, q => fmt(q,1)),
+       '高度(km)', '同一真實空速的馬赫數');
+
+  // 平流層頂:溫度最高 -> 音速最快 -> 馬赫數最低
+  g.fillStyle = css('--warn'); g.globalAlpha = 0.13;
+  g.fillRect(box.x(47), box.t, box.x(51)-box.x(47), box.b-box.t);
+  g.globalAlpha = 1;
+  g.fillStyle = css('--warn'); g.textAlign='center'; g.textBaseline='top';
+  g.font = '11px "IBM Plex Sans", sans-serif';
+  g.fillText('平流層頂(最暖)', box.x(49), box.t+4);
+
+  g.strokeStyle = css('--accent'); g.lineWidth = 3; g.beginPath();
+  for (let k = 0; k <= hHi*4; k++){
+    const hk = k/4;
+    const m = v/soundSpeed(hk*1000);
+    k ? g.lineTo(box.x(hk), box.y(m)) : g.moveTo(box.x(hk), box.y(m));
+  }
+  g.stroke();
+
+  const marks = [0, 20, 49, 67.1, 84.9];
+  g.font = '11px "IBM Plex Mono", monospace';
+  marks.forEach(hk => {
+    const m = v/soundSpeed(hk*1000), T = us76Temp(hk*1000);
+    g.fillStyle = css('--trace');
+    g.beginPath(); g.arc(box.x(hk), box.y(m), 4, 0, 7); g.fill();
+    g.strokeStyle = css('--surface'); g.lineWidth = 1.8; g.stroke();
+    g.fillStyle = css('--ink-2');
+    g.textAlign = hk > hHi*0.78 ? 'right' : 'left';
+    g.textBaseline = 'bottom';
+    g.fillText('Ma ' + fmt(m,1) + '  (' + fmt(T) + ' K)',
+               box.x(hk) + (hk > hHi*0.78 ? -7 : 7), box.y(m) - 6);
+  });
+
+  const m0 = v/soundSpeed(0), mTop = v/soundSpeed(84852), mMid = v/soundSpeed(49000);
+  document.getElementById('machCap').innerHTML =
+    `橫軸是高度,縱軸是<strong>同一個真實空速 ${fmt(v)} m/s</strong> 換算出來的馬赫數。
+     速度完全沒變,馬赫數卻從海平面的 <strong>${fmt(m0,2)}</strong>
+     變到 85 km 的 <strong>${fmt(mTop,2)}</strong>,中間在平流層頂還回落到
+     <strong>${fmt(mMid,2)}</strong> —— 那裡臭氧吸收紫外線,是大氣的一個暖層。
+     <br>所以設計時必須分清楚限制是掛在<strong>馬赫數</strong>還是<strong>真實空速</strong>上。
+     本頁量到的 Aviator 求解上限是<strong>真空速</strong> ${fmt(v)} m/s:
+     同樣馬赫 20 在 80 km 解得出來、在 60 km 解不出來,原因就在這條曲線。`;
+}
+
 /* ══ 乘波體與三種彈道 ══════════════════════════════════════════════════
    桑格爾跳躍的簡化模型:每次掠過大氣把飛行路徑角由 −γe 反轉為 +γe,
    這個轉向要靠升力,代價是 Δv/v ≈ 2γe/(L/D);兩次掠過之間走彈道弧。
@@ -1234,13 +1642,17 @@ function drawTraj3(C){
   g.textBaseline='middle'; g.fillText('高度(km,平方根尺度)', 0, 0); g.restore();
 
   // 卡門線
-  g.strokeStyle = css('--muted'); g.setLineDash([2,4]);
+  g.strokeStyle = css('--muted'); g.lineWidth = 1; g.setLineDash([2,4]);
   g.beginPath(); g.moveTo(box.l, box.y(100)); g.lineTo(box.r, box.y(100));
   g.stroke(); g.setLineDash([]);
+  g.fillStyle = css('--muted'); g.textAlign='left'; g.textBaseline='alphabetic';
+  g.font = '11px "IBM Plex Mono", monospace';
+  g.fillText('卡門線 100 km', box.l+6, box.y(100)-4);
 
-  // 1. 純彈道
+  // 1. 純彈道 —— 對照基準,所以用虛線的高對比中性色
   const b = C.pure;
-  g.strokeStyle = css('--muted'); g.lineWidth = 2; g.beginPath();
+  g.strokeStyle = css('--tj-ball'); g.lineWidth = 2.2;
+  g.setLineDash([8,5]); g.beginPath();
   if (b.e > 1e-9){
     const p = b.a*(1-b.e*b.e);
     const nuOf = r => Math.acos(Math.max(-1, Math.min(1, (p/r - 1)/b.e)));
@@ -1252,11 +1664,12 @@ function drawTraj3(C){
       k ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
     }
   }
-  g.stroke();
+  g.stroke(); g.setLineDash([]);
 
   // 2. 桑格爾跳躍
   const sk = sangerSkips(C.bg.v_bo, S.ld, 5.0, 60000);
-  g.strokeStyle = css('--crit'); g.lineWidth = 2; g.beginPath();
+  g.strokeStyle = css('--tj-skip'); g.lineWidth = 2.6;
+  g.lineJoin = 'round'; g.beginPath();
   let started = false;
   sk.forEach(d => {
     const x = d.s/1000;
@@ -1268,8 +1681,8 @@ function drawTraj3(C){
   g.stroke();
   const sEnd = sk[sk.length-1];
 
-  // 3. 錢學森持續滑翔(本頁採用)
-  g.strokeStyle = css('--good'); g.lineWidth = 3; g.beginPath();
+  // 3. 錢學森持續滑翔(本頁採用)—— 主角,最粗
+  g.strokeStyle = css('--tj-glide'); g.lineWidth = 3.6; g.beginPath();
   const arcK = Math.min(Rk*0.1, C.bg.arc/1000);
   for (let k = 0; k <= 120; k++){
     const f = k/120;
@@ -1282,16 +1695,22 @@ function drawTraj3(C){
   g.stroke();
 
   // 圖例
-  const leg = [['--good','錢學森:持續滑翔(本頁採用)'],
-               ['--crit','桑格爾:跳躍滑翔'],
-               ['--muted','純彈道(無機翼)']];
+  // 圖例 —— 顏色、線寬、虛實都與圖上的線一致
+  const leg = [['--tj-glide','錢學森:持續滑翔(本頁採用)', 3.6, []],
+               ['--tj-skip', '桑格爾:跳躍滑翔',           2.6, []],
+               ['--tj-ball', '純彈道(無機翼)',            2.2, [8,5]]];
   g.font = '12px "IBM Plex Sans", sans-serif';
   g.textAlign='left'; g.textBaseline='middle';
+  // 圖例底襯:避免線穿過去讓文字難讀
+  g.fillStyle = css('--surface'); g.globalAlpha = 0.82;
+  g.fillRect(box.r-222, box.t+4, 216, 3*19 + 6);
+  g.globalAlpha = 1;
   leg.forEach((L_, i) => {
     const y = box.t + 16 + i*19;
-    g.strokeStyle = css(L_[0]); g.lineWidth = 3;
-    g.beginPath(); g.moveTo(box.r-210, y); g.lineTo(box.r-186, y); g.stroke();
-    g.fillStyle = css('--ink-2'); g.fillText(L_[1], box.r-178, y);
+    g.strokeStyle = css(L_[0]); g.lineWidth = L_[2]; g.setLineDash(L_[3]);
+    g.beginPath(); g.moveTo(box.r-214, y); g.lineTo(box.r-186, y); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = css('--ink'); g.fillText(L_[1], box.r-178, y);
   });
 
   document.getElementById('traj3Cap').innerHTML =
