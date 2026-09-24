@@ -996,12 +996,17 @@ function us76Density(h){
              [47000,270.65,0,110.906],[51000,270.65,-0.0028,66.9389],
              [71000,214.65,-0.002,3.95642],[84852,186.946,0,0.373384]];
   const R = 287.053;
-  if (h > 84852) return (0.373384/(R*186.946))*Math.exp(-(h-84852)/6000);
+  // **US76 的分層界線是位勢高度,不是幾何高度。**
+  // 少了這個轉換,47 km 以下看不出來,但 70 km 差 -10.4%、80 km 差 -14.9%,
+  // 而滑翔段就在 70 km 附近。與 spaceport_analysis.us76_density() 同步。
+  const R_E76 = 6356766.0;
+  const hg = R_E76*h/(R_E76 + h);          // 幾何 -> 位勢
+  if (hg > 84852) return (0.373384/(R*186.946))*Math.exp(-(hg-84852)/6000);
   let [hb,tb,lr,pb] = L[0];
-  for (const l of L){ if (h >= l[0]) [hb,tb,lr,pb] = l; else break; }
+  for (const l of L){ if (hg >= l[0]) [hb,tb,lr,pb] = l; else break; }
   let t, p;
-  if (lr === 0){ t = tb; p = pb*Math.exp(-G0*(h-hb)/(R*tb)); }
-  else { t = tb + lr*(h-hb); p = pb*Math.pow(t/tb, -G0/(lr*R)); }
+  if (lr === 0){ t = tb; p = pb*Math.exp(-G0*(hg-hb)/(R*tb)); }
+  else { t = tb + lr*(hg-hb); p = pb*Math.pow(t/tb, -G0/(lr*R)); }
   return p/(R*t);
 }
 // 平衡滑翔高度:升力 = 離心解除後的有效重量
