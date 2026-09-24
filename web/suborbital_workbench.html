@@ -354,7 +354,8 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
   <p class="posnote">
     <b>定位:</b>本頁是「長程次軌道／高超音速跨洲飛行」的概念分析工作單,
     <b>不是</b>民用次軌道觀光飛行器(80–120 km 高度、數百公里射程)的設計模型。
-    預設航線 13,109 km、遠地點約 1,189 km,尺度接近洲際彈道或全球次軌道運輸。
+    預設航線 <span id="posRange">—</span>、遠地點約 <span id="posApo">—</span>,
+    尺度接近洲際彈道或全球次軌道運輸。
     所有數值為一階概念估算,<b>不是設計值</b>。
   </p>
   <dl class="mission" id="mission"></dl>
@@ -918,6 +919,12 @@ const SPEC = [
    hint:'重力 + 氣動 + 轉向損失。入軌任務公認 1,500–2,000。'},
 ];
 const S = Object.assign({}, DEFAULTS);
+// 水火箭那一節自己的狀態。**宣告必須在下方控制列接線之前** ——
+// 先前它宣告在水火箭的繪圖區塊(檔案較後面),而接線程式在控制列區
+// 就先跑了,於是 const 的暫時死區讓整個 <script> 在載入時就丟
+// ReferenceError: Cannot access 'WR' before initialization,
+// 結果是 11 張 canvas 全部空白。node --check 只驗語法,抓不到這種錯。
+const WR = {fill:0.33, p:6.0};
 // 非有限值一律顯示「無解」,不讓 NaN 或 Infinity 以數字的樣子出現。
 // 實測 768 組極端輸入組合沒有產生非有限值,但防護的成本近乎零,
 // 而一個看起來像數字的 NaN 會讓人以為那是結果。
@@ -999,6 +1006,11 @@ function render(){
   });
   const C = compute();
   LASTC = C;
+
+  // 定位說明裡的數字也要跟著算 —— 先前這裡硬寫著「遠地點約 1,189 km」,
+  // 那是第一版架構的值,經過兩次更正後早就不對了,卻沒人會想到去改它。
+  document.getElementById('posRange').textContent = fmt(S.range) + ' km';
+  document.getElementById('posApo').textContent = fmt(C.apogee/1000) + ' km';
 
   document.getElementById('mission').innerHTML = [
     ['航線', `旭海 → KEFD`],
@@ -1389,8 +1401,7 @@ document.querySelectorAll('.seg button').forEach(b => {
 const RHO_W = 1000, P_ATM = 101325;
 const V_BOTTLE = 2.0e-3;      // 2 公升寶特瓶
 const M_DRY = 0.100;          // 空瓶 + 鼻錐 + 尾翼,約 100 公克
-const GAMMA_AIR = 1.4, R_AIR = 287.053;
-const WR = {fill:0.33, p:6.0};
+const GAMMA_AIR = 1.4, R_AIR = 287.053;   // WR 宣告已移到控制列之前
 
 function waterRocket(fill, pBar){
   const Va0 = V_BOTTLE*(1 - fill);
@@ -1704,7 +1715,7 @@ function drawEnvelope(C){
   const {g, w, h} = setup(cv);
   const pad = {l:66, r:16, t:16, b:48};
   const vHi = Math.max(7000, Math.ceil(C.vEntryArc/500)*500 + 500);
-  const aHi = 95;
+  const aHi = 100;          // 取到卡門線,刻度剛好是 0/20/40/60/80/100
   const box = {
     l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
     x:q => pad.l + (w-pad.l-pad.r)*(q/vHi),
@@ -1713,6 +1724,10 @@ function drawEnvelope(C){
   axes(g, box, ticks(0, vHi, 7, q => fmt(q/1000,1)),
        ticks(0, aHi, 5, q => fmt(q)),
        '真實空速(km/s)', '高度(km)');
+  // 卡門線就在縱軸頂端,標一下讓讀者有尺度感
+  g.fillStyle = css('--muted'); g.textAlign='right'; g.textBaseline='top';
+  g.font = '11px "IBM Plex Mono", monospace';
+  g.fillText('卡門線 100 km', box.r-6, box.t+4);
 
   const N = 180, vs = [];
   for (let i = 0; i <= N; i++) vs.push(Math.max(60, vHi*i/N));
