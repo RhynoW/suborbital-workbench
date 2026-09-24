@@ -1,0 +1,3 @@
+# 這個 app 的全部相依。所有計算都在瀏覽器端的 JavaScript 完成,
+# 伺服器只負責送出一個靜態 HTML 檔,因此不需要 numpy / scipy / matplotlib。
+streamlit>=1.36

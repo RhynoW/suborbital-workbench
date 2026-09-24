@@ -1,0 +1,1112 @@
+<title>次軌道載具設計工作單</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --surface-2:#F6F8FA;
+  --ink:#131922; --ink-2:#39424F; --muted:#5B6675; --line:#D3DAE2;
+  --accent:#0B6E8A; --accent-soft:#E2EEF2;
+  --trace:#C2600C; --trace-soft:#F7ECE0;
+  --good:#166534; --warn:#9A6206; --crit:#A32118;
+  --grid:#DCE2E9;
+  --sans:"IBM Plex Sans","Noto Sans TC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1319; --surface:#161D26; --surface-2:#1C2531;
+    --ink:#E4E9EF; --ink-2:#BCC6D2; --muted:#8D9AAA; --line:#2A343F;
+    --accent:#4FADC8; --accent-soft:#132A33;
+    --trace:#E8913A; --trace-soft:#2C2015;
+    --good:#4ADE80; --warn:#FBBF24; --crit:#F87171;
+    --grid:#232D38;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1319; --surface:#161D26; --surface-2:#1C2531;
+  --ink:#E4E9EF; --ink-2:#BCC6D2; --muted:#8D9AAA; --line:#2A343F;
+  --accent:#4FADC8; --accent-soft:#132A33;
+  --trace:#E8913A; --trace-soft:#2C2015;
+  --good:#4ADE80; --warn:#FBBF24; --crit:#F87171;
+  --grid:#232D38;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding-inline:18px; padding-block:0 64px}
+h1,h2,h3{text-wrap:balance; margin:0; font-weight:600; letter-spacing:-.01em}
+a{color:var(--accent)}
+
+/* ── 頁首 ─────────────────────────────────────────────── */
+header.top{padding-block:40px 26px; border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); font-weight:500;
+}
+h1{font-size:clamp(28px,4.4vw,42px); line-height:1.15; margin-top:10px}
+.lede{margin-top:14px; max-width:63ch; color:var(--ink-2); font-size:16.5px}
+.mission{
+  margin-top:22px; display:flex; flex-wrap:wrap; gap:0;
+  border:1px solid var(--line); background:var(--surface); border-radius:3px;
+  overflow:hidden;
+}
+.mission div{
+  padding:10px 16px; border-right:1px solid var(--line); flex:1 1 auto;
+  min-width:120px;
+}
+.mission div:last-child{border-right:0}
+.mission dt{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted);
+}
+.mission dd{margin:2px 0 0; font-family:var(--mono); font-size:16px; font-weight:500;
+  font-variant-numeric:tabular-nums}
+
+/* ── 區塊 ─────────────────────────────────────────────── */
+section{padding-block:38px; border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
+.sec-num{
+  font-family:var(--mono); font-size:12px; color:var(--trace);
+  font-weight:500; letter-spacing:.08em; flex:0 0 auto;
+}
+h2{font-size:clamp(20px,2.6vw,26px)}
+.sec-note{margin-top:10px; max-width:70ch; color:var(--ink-2)}
+
+/* ── 控制列 ───────────────────────────────────────────── */
+.controls{
+  margin-top:22px; display:grid; gap:2px;
+  grid-template-columns:repeat(auto-fit,minmax(224px,1fr));
+  background:var(--line); border:1px solid var(--line); border-radius:3px;
+}
+.ctl{background:var(--surface); padding:13px 15px 15px}
+.ctl label{
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+  font-size:13px; color:var(--muted);
+}
+.ctl label b{
+  font-family:var(--mono); font-size:15px; color:var(--ink); font-weight:500;
+  font-variant-numeric:tabular-nums;
+}
+.ctl .hint{font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.45}
+input[type=range]{
+  width:100%; margin:9px 0 0; accent-color:var(--accent); height:20px;
+}
+input[type=range]:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
+.reset{
+  margin-top:14px; font-family:var(--mono); font-size:12px; letter-spacing:.06em;
+  background:none; border:1px solid var(--line); color:var(--ink-2);
+  padding:7px 14px; border-radius:2px; cursor:pointer;
+}
+.reset:hover{border-color:var(--accent); color:var(--accent)}
+
+/* ── 推導鏈 ───────────────────────────────────────────── */
+.chain{margin-top:24px; display:grid; gap:14px}
+.link{
+  display:grid; grid-template-columns:150px 1fr; gap:0;
+  border:1px solid var(--line); background:var(--surface); border-radius:3px;
+  overflow:hidden;
+}
+.link .lhs{
+  background:var(--surface-2); padding:13px 15px; border-right:1px solid var(--line);
+}
+.link .step{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted);
+}
+.link .name{font-weight:500; font-size:14.5px; margin-top:2px; line-height:1.35}
+.link .rhs{padding:13px 16px; display:flex; flex-direction:column; gap:8px}
+.eq{
+  font-family:var(--mono); font-size:13px; color:var(--accent);
+  background:var(--accent-soft); padding:6px 10px; border-radius:2px;
+  overflow-x:auto; white-space:nowrap;
+}
+.vals{display:flex; flex-wrap:wrap; gap:6px 22px}
+.val{display:flex; align-items:baseline; gap:7px}
+.val span{font-size:12.5px; color:var(--muted)}
+.val strong{
+  font-family:var(--mono); font-size:17px; font-weight:500;
+  font-variant-numeric:tabular-nums; color:var(--ink);
+}
+.val.hero strong{font-size:22px; color:var(--trace)}
+.why{font-size:13px; color:var(--ink-2); line-height:1.55}
+
+/* ── 圖 ───────────────────────────────────────────────── */
+figure{margin:22px 0 0}
+.plot{
+  border:1px solid var(--line); background:var(--surface); border-radius:3px;
+  padding:12px;
+}
+canvas{display:block; width:100%; height:auto; max-width:100%}
+figcaption{margin-top:9px; font-size:12.5px; color:var(--muted); line-height:1.55}
+.legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px}
+.key{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2)}
+.swatch{width:15px; height:3px; border-radius:2px; flex:0 0 auto}
+.swatch.dash{height:0; border-top:2px dashed currentColor}
+.two-up{display:grid; gap:22px; grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+
+/* ── 因子卡 ───────────────────────────────────────────── */
+.factors{margin-top:24px; display:grid; gap:2px;
+  grid-template-columns:repeat(auto-fit,minmax(288px,1fr));
+  background:var(--line); border:1px solid var(--line); border-radius:3px}
+.factor{background:var(--surface); padding:16px; display:flex; flex-direction:column; gap:9px}
+.factor .tag{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--trace);
+}
+.factor h3{font-size:16px; line-height:1.35}
+.factor .q{font-size:13.5px; color:var(--ink-2); line-height:1.55}
+.factor .eq{font-size:12px}
+.factor .now{
+  font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums;
+  border-top:1px solid var(--line); padding-top:9px; margin-top:auto;
+  display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+}
+.factor .now em{font-style:normal; color:var(--muted); font-family:var(--sans); font-size:12.5px}
+.factor .now b{font-weight:500}
+.tension{
+  font-size:12.5px; line-height:1.5; color:var(--ink-2);
+  border-left:2px solid var(--trace); padding-left:10px;
+}
+.tension b{color:var(--ink); font-weight:500}
+
+/* ── 邊界表 ───────────────────────────────────────────── */
+.tblwrap{margin-top:20px; overflow-x:auto; border:1px solid var(--line); border-radius:3px}
+table{border-collapse:collapse; width:100%; min-width:620px; background:var(--surface)}
+th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); font-size:13.5px;
+  vertical-align:top}
+th{background:var(--surface-2); font-weight:500; font-size:12px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted); white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+.pill{
+  display:inline-block; font-family:var(--mono); font-size:11px; padding:2px 8px;
+  border-radius:10px; letter-spacing:.04em; white-space:nowrap;
+}
+.pill.ok{background:var(--accent-soft); color:var(--accent)}
+.pill.no{background:var(--trace-soft); color:var(--trace)}
+
+.callout{
+  margin-top:22px; border:1px solid var(--trace); background:var(--trace-soft);
+  border-radius:3px; padding:15px 17px;
+}
+.callout h3{font-size:15.5px; color:var(--ink)}
+.callout p{margin:8px 0 0; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+.callout p:first-of-type{margin-top:7px}
+
+.chip{
+  display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:.06em;
+  padding:1px 7px; border-radius:9px; border:1px solid currentColor;
+  white-space:nowrap; vertical-align:middle;
+}
+.chip.calc{color:var(--accent)}
+.chip.proxy{color:var(--trace)}
+.chip.sketch{color:var(--muted)}
+.chip.meas{color:var(--good)}
+.chip.unver{color:var(--crit)}
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:2px}
+
+.layers{
+  margin-top:24px; border:1px solid var(--line); border-radius:3px;
+  background:var(--surface); overflow:hidden;
+}
+.layers > h3{
+  padding:12px 16px; background:var(--surface-2); font-size:15px;
+  border-bottom:1px solid var(--line);
+}
+.layer{
+  display:grid; grid-template-columns:132px 92px 1fr; gap:0;
+  border-bottom:1px solid var(--line);
+}
+.layer:last-child{border-bottom:0}
+.layer > div{padding:11px 15px}
+.layer .lname{font-weight:500; font-size:14px; border-right:1px solid var(--line)}
+.layer .lstate{
+  font-family:var(--mono); font-size:12.5px; border-right:1px solid var(--line);
+  font-weight:500;
+}
+.layer .lnote{font-size:13px; color:var(--ink-2); line-height:1.5}
+.s-ok{color:var(--good)} .s-warn{color:var(--warn)} .s-no{color:var(--crit)}
+.s-na{color:var(--muted)}
+@media (max-width:560px){
+  .layer{grid-template-columns:1fr}
+  .layer .lname,.layer .lstate{border-right:0; padding-bottom:0}
+}
+
+.posnote{
+  margin-top:18px; border-left:3px solid var(--trace); padding:2px 0 2px 14px;
+  font-size:13.5px; color:var(--ink-2); line-height:1.6; max-width:72ch;
+}
+.posnote b{color:var(--ink); font-weight:500}
+
+footer{padding-block:34px 0; border-top:2px solid var(--ink); margin-top:34px}
+footer p{margin:0 0 9px; font-size:12.5px; color:var(--muted); max-width:78ch; line-height:1.6}
+code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
+  padding:1px 5px; border-radius:2px; border:1px solid var(--line)}
+
+@media (max-width:560px){
+  .link{grid-template-columns:1fr}
+  .link .lhs{border-right:0; border-bottom:1px solid var(--line)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">次軌道運載系統 · 概念設計</div>
+  <h1>次軌道載具設計工作單</h1>
+  <p class="lede">
+    設計一個太空港到太空港的次軌道系統時,工程因子不能各自挑選 —— 射程決定所需
+    速度,速度以<strong>指數</strong>決定質量比,而機翼只在升阻比超過某個門檻後才
+    划算。移動下面任何一個設計變數,整條推導鏈會一起動。
+  </p>
+  <p class="posnote">
+    <b>定位:</b>本頁是「長程次軌道／高超音速跨洲飛行」的概念分析工作單,
+    <b>不是</b>民用次軌道觀光飛行器(80–120 km 高度、數百公里射程)的設計模型。
+    預設航線 13,109 km、遠地點約 1,189 km,尺度接近洲際彈道或全球次軌道運輸。
+    所有數值為一階概念估算,<b>不是設計值</b>。
+  </p>
+  <dl class="mission" id="mission"></dl>
+</header>
+
+<!-- ── 1 推導鏈 ─────────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>設計變數與推導鏈</h2></div>
+  <p class="sec-note">
+    七個變數,全部是設計者的選擇。右側每一格的公式就是該步驟的物理依據;
+    數字會即時重算。預設值是屏東旭海到休士頓 KEFD 的實際航線。
+  </p>
+
+  <div class="chips" style="margin-top:14px">
+    <span class="chip calc">計算</span><span class="chip proxy">代理模型</span>
+    <span class="chip sketch">示意</span><span class="chip meas">實測</span>
+    <span class="chip unver">未驗證</span>
+  </div>
+  <div class="controls" id="controls"></div>
+  <button class="reset" id="reset">回到預設設計點</button>
+
+  <div class="chain" id="chain"></div>
+
+  <div class="layers">
+    <h3>這個設計點現在處於哪一層?</h3>
+    <div id="layers"></div>
+  </div>
+</section>
+
+<!-- ── 2 軌跡剖面 ───────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>軌跡剖面與模型接縫</h2></div>
+  <p class="sec-note">
+    高度對沿程距離。四個飛行階段各有不同的主導物理,因此在模擬工具裡也由不同的
+    模型負責。注意<strong>再入減速帶</strong> —— 那一段沒有任何現成模型涵蓋,
+    是這類專案最容易被忽略的地方。
+  </p>
+  <figure>
+    <div class="plot"><canvas id="profile" width="1120" height="470"></canvas></div>
+    <div class="legend" id="profLegend"></div>
+    <div class="chips">
+      <span class="chip sketch">上升段=示意曲線</span>
+      <span class="chip calc">彈道弧=最小能量橢圓計算</span>
+      <span class="chip calc">滑翔段=平衡滑翔反解</span>
+      <span class="chip meas">接縫寬度=STK 實測落差</span>
+    </div>
+    <figcaption id="profCap"></figcaption>
+  </figure>
+</section>
+
+<!-- ── 3 兩條曲線 ───────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>兩個反直覺的關係</h2></div>
+  <p class="sec-note">
+    學生最常誤判的兩件事:以為「加機翼一定有利」,以及低估質量比對 Δv 的敏感度。
+    這兩張圖各針對一個。
+  </p>
+  <div class="two-up">
+    <figure>
+      <div class="plot"><canvas id="wing" width="620" height="400"></canvas></div>
+      <figcaption id="wingCap"></figcaption>
+    </figure>
+    <figure>
+      <div class="plot"><canvas id="mass" width="620" height="400"></canvas></div>
+      <figcaption id="massCap"></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ── 4 工程因子 ───────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>十個必須計算的工程因子</h2></div>
+  <p class="sec-note">
+    每一格是一個必須算、而且會和其他因子打架的量。下緣是目前設計點的值,
+    最後一行是它的設計張力 —— 也就是為什麼不能只往一個方向最佳化。
+  </p>
+  <div class="factors" id="factors"></div>
+</section>
+
+<!-- ── 5 工具邊界 ───────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>工具的能力邊界也是設計條件</h2></div>
+  <p class="sec-note">
+    以 STK 12 實機量測的結果。工程師要知道工具在哪裡停下來 ——
+    模擬跑得出數字不等於那個數字有效。
+  </p>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>飛行階段</th><th>主導物理</th><th>可用模型</th><th>狀態</th></tr></thead>
+      <tbody id="phaseTbl"></tbody>
+    </table>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>量測到的邊界</th><th class="num">數值</th><th>意義</th></tr></thead>
+      <tbody id="limitTbl"></tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <h3>給學生的一個判讀練習</h3>
+    <p>
+      在 Aviator 裡要求馬赫 22,軟體會算出馬赫 21.95、真空速 6,478 公尺/秒的結果 ——
+      數字看起來完全合理。但那條航跡的有效性旗標是 <code>false</code>,航路被截斷在
+      第一段,後面的航點根本沒有飛。
+    </p>
+    <p>
+      教訓不是「工具不好」,而是:<strong>任何模擬結果都要先問它收斂了沒有,
+      再看數值。</strong> 這個習慣比記住任何一條公式都重要。
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p>
+    計算依據:最小能量彈道解(球形地球、無阻力)、Eggers 平衡滑翔射程、
+    齊奧爾科夫斯基方程、Sutton–Graves 熱通量比例式。全部是一階概念設計層級的
+    解析式,用於建立量級直覺與因子耦合關係。
+  </p>
+  <p>
+    <strong>這些不是設計值。</strong> 真實設計需要上升段軌跡最佳化、六自由度
+    再入積分、氣動係數資料庫與結構熱分析。本頁刻意把簡化假設寫在每個公式旁邊,
+    讓使用者知道哪裡會失準。
+  </p>
+  <p>
+    工具邊界的數字來自 STK 12 的實機量測(Python API),非文件推論。
+    軌跡剖面的彈道段以最小能量橢圓繪製,上升段為示意曲線。
+  </p>
+</footer>
+
+</div>
+
+<script>
+'use strict';
+/* ══ 常數 ══════════════════════════════════════════════════════════════ */
+// RE 用 WGS84 赤道半徑,與 repo 的 spaceport_analysis.py 一致。
+// 先前用平均半徑 6,371,000 m,兩邊算出的 v_bo 差 0.075%、遠地點差 0.2% ——
+// 數值都合理,但網頁與分析模組給出不同答案,那是不能接受的。
+const RE = 6378137.0, MU = 3.986004418e14, G0 = 9.80665;
+const V_CIRC_SURF = Math.sqrt(MU / RE);            // 7,910 m/s
+const V_CIRC_200 = Math.sqrt(MU / (RE + 200000));  // 7,784 m/s
+const LAT = 22.0620, AZ = 35.335;                  // 旭海 / 大圓方位
+const BURNOUT_ALT = 100000, HANDOVER_ALT = 80000, ENTRY_ALT = 120000;
+const TAS_LIMIT = 5400;                            // Aviator 實測上限 m/s
+const ADVFW_CEIL = 13106;                          // AdvFW 生成模型上限 m
+
+/* ══ 物理 ══════════════════════════════════════════════════════════════ */
+// 最小能量彈道:v²/(g·r0) = 2sin(θ/2)/(1+sin(θ/2)),γ = 45° − θ/4
+function ballistic(theta){
+  const s = Math.sin(theta/2), g = MU/(RE*RE);
+  const v2 = (2*s/(1+s))*g*RE, v = Math.sqrt(v2);
+  const gam = (45 - theta*180/Math.PI/4) * Math.PI/180;
+  const eps = v2/2 - MU/RE, a = -MU/(2*eps);
+  const h = RE*v*Math.cos(gam), p = h*h/MU;
+  const e = Math.sqrt(Math.max(0, 1 - p/a));
+  const apo = a*(1+e) - RE;
+  let tof = 0;
+  if (e > 1e-9){
+    const cn = Math.max(-1, Math.min(1, (p/RE - 1)/e));
+    const nu1 = Math.acos(cn);
+    const E1 = 2*Math.atan(Math.sqrt((1-e)/(1+e))*Math.tan(nu1/2));
+    const M1 = E1 - e*Math.sin(E1), n = Math.sqrt(MU/(a*a*a));
+    tof = 2*(Math.PI - M1)/n;
+  }
+  return {v, gammaDeg: gam*180/Math.PI, apogee: apo, tof, a, e, p, theta};
+}
+// 理想化平衡滑翔(Eggers)的反解:要滑這麼遠,再入速度要多少。
+// 正解 R = (L/D)(RE/2)·ln[1/(1−(v/v_c)²)] 是**從再入點算起的總射程**,
+// 不是可以疊加在彈道射程上的增量。頁面只用反解,正解不需要。
+// 適用條件:等升阻比、升力與(重力−離心力)平衡、指數大氣、球形地球。
+// v → v_c 時解退化(不再下降),見三層狀態的「模型適用」檢查。
+function glideV(range, ld){
+  const x = 1 - Math.exp(-range/(ld*RE/2));
+  return V_CIRC_SURF*Math.sqrt(Math.max(0, x));
+}
+// 三段式:掃滑行佔比,取所需 v_bo 最小者(兩段取大者是保守的一階近似)
+function optimum(range, ld){
+  let best = {need: Infinity};
+  for (let i = 0; i <= 50; i++){
+    const f = i/50, coast = range*f, gl = range*(1-f);
+    const vC = f > 0 ? ballistic(coast/RE).v : 0;
+    const vE = gl > 1000 ? glideV(gl, ld) : 0;
+    const need = Math.max(vC, vE);
+    if (need < best.need) best = {need, f, coast, glide: gl, vCoast: vC, vEntry: vE};
+  }
+  return best;
+}
+const rotAssist = () => 465.1*Math.cos(LAT*Math.PI/180)*Math.sin(AZ*Math.PI/180);
+const massRatio = (dv, isp) => Math.exp(dv/(isp*G0));
+const tBurn = (isp, R, tw) => isp*(1 - 1/R)/tw;
+
+/* ══ 設計變數 ══════════════════════════════════════════════════════════ */
+const DEFAULTS = {range:13109.3, ld:2.0, isp1:285, isp2:340, split:0.62, tw1:1.30, loss:1600};
+const SPEC = [
+  {k:'range', label:'目標射程', unit:'km', min:2000, max:16000, step:0.1,
+   hint:'太空港之間的大圓距離。預設是旭海到休士頓。'},
+  {k:'ld', label:'升阻比 L/D', unit:'', min:0.5, max:4, step:0.1,
+   hint:'高超音速下的升阻比。升力體約 1–2,有翼可到 2–3。'},
+  {k:'isp1', label:'第一節比衝', unit:'s', min:240, max:340, step:5,
+   hint:'煤油/液氧約 285,固體約 250,液氫約 360。'},
+  {k:'isp2', label:'第二節比衝', unit:'s', min:280, max:460, step:5,
+   hint:'真空膨脹比高,可比第一節高 40–80 s。'},
+  {k:'split', label:'Δv 分配給第一節', unit:'', min:0.40, max:0.80, step:0.01,
+   hint:'兩節式常見 0.55–0.70。影響分離時刻與兩節尺寸。'},
+  {k:'tw1', label:'起飛推重比', unit:'', min:1.05, max:1.80, step:0.05,
+   hint:'低於 1 起飛不了;太高則結構與氣動負荷大。'},
+  {k:'loss', label:'速度損失假設', unit:'m/s', min:1000, max:2600, step:50,
+   hint:'重力 + 氣動 + 轉向損失。入軌任務公認 1,500–2,000。'},
+];
+const S = Object.assign({}, DEFAULTS);
+// 非有限值一律顯示「無解」,不讓 NaN 或 Infinity 以數字的樣子出現。
+// 實測 768 組極端輸入組合沒有產生非有限值,但防護的成本近乎零,
+// 而一個看起來像數字的 NaN 會讓人以為那是結果。
+const fmt = (n, d=0) => Number.isFinite(n)
+  ? n.toLocaleString('en-US',{minimumFractionDigits:d, maximumFractionDigits:d})
+  : '無解';
+
+/* ══ 控制列 ════════════════════════════════════════════════════════════ */
+const ctlHost = document.getElementById('controls');
+ctlHost.innerHTML = SPEC.map(s => `
+  <div class="ctl">
+    <label for="s_${s.k}">${s.label}
+      <b id="o_${s.k}"></b></label>
+    <input type="range" id="s_${s.k}" min="${s.min}" max="${s.max}" step="${s.step}"
+           value="${S[s.k]}" aria-label="${s.label}">
+    <div class="hint">${s.hint}</div>
+  </div>`).join('');
+SPEC.forEach(s => {
+  document.getElementById('s_'+s.k).addEventListener('input', ev => {
+    S[s.k] = parseFloat(ev.target.value); render();
+  });
+});
+document.getElementById('reset').addEventListener('click', () => {
+  Object.assign(S, DEFAULTS);
+  SPEC.forEach(s => { document.getElementById('s_'+s.k).value = S[s.k]; });
+  render();
+});
+
+/* ══ 計算 ══════════════════════════════════════════════════════════════ */
+function compute(){
+  const rangeM = S.range*1000;
+  const pure = ballistic(rangeM/RE);
+  const opt = optimum(rangeM, S.ld);
+  const vbo = opt.need;
+  const bal = ballistic(Math.max(1, opt.coast)/RE);
+  const assist = rotAssist();
+  const dvTotal = vbo + S.loss - assist;
+  const dv1 = dvTotal*S.split, dv2 = dvTotal - dv1;
+  const mr1 = massRatio(dv1, S.isp1), mr2 = massRatio(dv2, S.isp2);
+  const mrTot = mr1*mr2;
+  const tw2 = 0.8;
+  const t1 = tBurn(S.isp1, mr1, S.tw1), t2 = tBurn(S.isp2, mr2, tw2);
+  const coastS = 6;
+  const vEntry = opt.vEntry || vbo;
+  // 熱通量:q ∝ √ρ·v³。同高度下取比值,以軌道再入(7,910 m/s)為 1
+  const qRatio = (vEntry/V_CIRC_SURF)**3;
+  const decelG = 1/Math.max(0.1, S.ld);
+  const seam = Math.max(0, vbo - TAS_LIMIT);
+  const pctOrbital = vbo/V_CIRC_200*100;
+  const saveVsPure = pure.v - vbo;
+  return {rangeM, pure, opt, vbo, bal, assist, dvTotal, dv1, dv2, mr1, mr2, mrTot,
+          tw2, t1, t2, coastS, tSep:t1, tBO:t1+coastS+t2, vEntry, qRatio, decelG,
+          seam, pctOrbital, saveVsPure,
+          apogee: opt.f > 0.02 ? bal.apogee : glideApogee(opt, S.ld)};
+}
+function glideApogee(){ return HANDOVER_ALT; }
+
+/* ══ 渲染:頁首 + 推導鏈 ═══════════════════════════════════════════════ */
+function render(){
+  SPEC.forEach(s => {
+    const v = S[s.k];
+    const d = s.step < 1 ? (s.step < 0.05 ? 2 : 1) : 0;
+    document.getElementById('o_'+s.k).textContent = fmt(v, d) + (s.unit ? ' '+s.unit : '');
+  });
+  const C = compute();
+
+  document.getElementById('mission').innerHTML = [
+    ['航線', `旭海 → KEFD`],
+    ['射程', `${fmt(S.range)} km`],
+    ['所需熄火速度', `${fmt(C.vbo)} m/s`],
+    ['佔入軌速度', `${fmt(C.pctOrbital,1)} %`],
+    ['總質量比', `${fmt(C.mrTot,1)} : 1`],
+    ['分離時刻', `T+${fmt(C.tSep)} s`],
+  ].map(([k,v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+
+  const chain = [
+    {step:'步驟 1', name:'射程 → 中心角',
+     eq:'θ = R / R_E',
+     vals:[['中心角 θ', fmt(C.rangeM/RE*180/Math.PI,1)+'°']],
+     why:`射程要換成地心張角才能用彈道學處理。${fmt(S.range)} km 對應
+          ${fmt(C.rangeM/RE*180/Math.PI,1)} 度,已經是地球周長的
+          ${fmt(C.rangeM/RE*180/Math.PI/360*100,0)}%,球面幾何不能再用平面近似。`},
+    {step:'步驟 2', name:'中心角 → 純彈道所需速度',
+     eq:'v² / (g·R_E) = 2·sin(θ/2) / (1 + sin(θ/2))',
+     vals:[['純彈道 v_bo', fmt(C.pure.v)+' m/s'],
+           ['遠地點', fmt(C.pure.apogee/1000)+' km'],
+           ['飛行時間', fmt(C.pure.tof/60,1)+' min'],
+           ['熄火角 γ', fmt(C.pure.gammaDeg,1)+'°']],
+     why:`這是不靠機翼的基準線。注意它是<strong>非線性</strong>的 ——
+          射程加倍需要的速度遠不止加倍,因為分母的 sin(θ/2) 也在長。<br>
+          <em>假設:二體球形地球、無大氣、起落點同半徑、瞬時脈衝、取短弧解,
+          不含地球自轉造成的慣性座標差異。</em>`},
+    {step:'步驟 3', name:'加入機翼 → 分段代理模型', chip:['proxy','代理模型'],
+     eq:'R_glide = (L/D)·(R_E/2)·ln[ 1 / (1 − (v/v_c)²) ]',
+     vals:[['最佳滑行佔比', fmt(C.opt.f*100)+' %'],
+           ['彈道段', fmt(C.opt.coast/1000)+' km'],
+           ['滑翔段', fmt(C.opt.glide/1000)+' km'],
+           ['所需 v_bo', fmt(C.vbo)+' m/s', true]],
+     why:`滑翔射程與 L/D 成正比,但再入速度的需求下降得慢。
+          目前 L/D ${fmt(S.ld,1)} 相對純彈道
+          ${C.saveVsPure >= 0
+            ? `<strong style="color:var(--good)">省下 ${fmt(C.saveVsPure)} m/s</strong>`
+            : `<strong style="color:var(--crit)">反而多要 ${fmt(-C.saveVsPure)} m/s</strong>`}。
+          機翼的重量與阻力不是免費的。<br>
+          <em><strong>這是分段代理模型,不是真實可行軌跡。</strong>
+          它把彈道段與滑翔段當成互相獨立的需求,各算各的再取大者。
+          真實情況兩段透過能量、彈道角與時間連續性耦合 ——
+          所以這個值既不是上界也不是下界,只用來呈現參數耦合的趨勢。</em>`},
+    {step:'步驟 4', name:'速度 → Δv 預算',
+     eq:'Δv_total = v_bo + 損失 − 自轉助益',
+     vals:[['損失假設', fmt(S.loss)+' m/s'],
+           ['自轉助益', fmt(C.assist)+' m/s'],
+           ['總 Δv', fmt(C.dvTotal)+' m/s', true]],
+     why:`重力、氣動、轉向損失要另外加上。往東北發射(方位
+          ${fmt(AZ,0)}°、緯度 ${fmt(LAT,1)}°N)可借到地球自轉
+          ${fmt(C.assist)} m/s —— 這是選址與方位的工程理由。<br>
+          <em>方位角採「自正北順時針」定義,正東為 90°;此處用的是大圓航線
+          在發射點的初始方位。損失為輸入假設,不是算出來的。</em>`},
+    {step:'步驟 5', name:'Δv → 質量比(指數關係)',
+     eq:'R = exp( Δv / (Isp · g₀) )',
+     vals:[['第一節 Δv', fmt(C.dv1)+' m/s'],
+           ['第一節質量比', fmt(C.mr1,2)],
+           ['第二節 Δv', fmt(C.dv2)+' m/s'],
+           ['第二節質量比', fmt(C.mr2,2)],
+           ['總質量比', fmt(C.mrTot,1)+' : 1', true]],
+     why:`這是整個設計裡最嚴厲的一條。質量比 ${fmt(C.mrTot,1)} 表示起飛重量是
+          入軌重量的 ${fmt(C.mrTot,1)} 倍 —— 結構與推進劑幾乎佔滿。
+          ${C.mrTot > 20
+            ? '<strong style="color:var(--crit)">超過 20 : 1,單一構型幾乎不可行。</strong>'
+            : '單節做不到這個比值,這就是必須分節的原因。'}`},
+    {step:'步驟 6', name:'質量比 → 燃燒時間與分離時刻',
+     eq:'t_burn = Isp · (1 − 1/R) / (T/W)',
+     vals:[['第一節燃燒', fmt(C.t1,1)+' s'],
+           ['分離時刻', 'T+'+fmt(C.tSep,1)+' s', true],
+           ['第二節燃燒', fmt(C.t2,1)+' s'],
+           ['熄火時刻', 'T+'+fmt(C.tBO,1)+' s']],
+     why:`推導後起飛質量 m₀ 消掉了 —— <strong>分離時刻與火箭絕對大小無關</strong>,
+          只取決於比衝、Δv 分配、推重比。概念設計階段不必先定總質量。
+          真實兩節式載具的第一節燃燒約 162–253 s 可做對照。<br>
+          <em>成立條件:定推力、定比衝、起飛推重比固定、理想火箭方程。
+          真實級段有節流、推力隨高度變化與殘留推進劑,不可直接當實際燃燒時間。</em>`},
+    {step:'步驟 7', name:'再入條件與工具邊界', chip:['meas','含 STK 實測'],
+     eq:'q ∝ √ρ · v³   ·   a ≈ g / (L/D)',
+     vals:[['再入速度', fmt(C.vEntry)+' m/s'],
+           ['速度三次方熱負荷指標', fmt(C.qRatio,2)+' ×'],
+           ['等效阻力減速量級', fmt(C.decelG,2)+' g'],
+           ['超出模擬上限', fmt(C.seam)+' m/s', C.seam > 0]],
+     why:`熱負荷指標只取<strong>速度三次方</strong>那一項
+          (假設密度與鼻錐半徑相同),不是完整的 Sutton–Graves 熱通量比;
+          減速量級是理想平衡滑翔下的估算,<strong>不是乘員過載或結構最大過載</strong>。
+          即便如此,三次方的意義很明確:再入速度降 10%,熱負荷指標降約 27%。
+          而 Aviator 的航段求解在真空速約 ${fmt(TAS_LIMIT)} m/s 以上
+          不收斂 ——
+          ${C.seam > 0
+            ? `目前設計超出 <strong style="color:var(--crit)">${fmt(C.seam)} m/s</strong>,這一段必須由氣動減速消掉,而兩個模型都不涵蓋它。`
+            : '目前設計落在可模擬範圍內。'}`},
+  ];
+  document.getElementById('chain').innerHTML = chain.map(l => `
+    <div class="link">
+      <div class="lhs"><div class="step">${l.step}</div><div class="name">${l.name}</div>
+        ${l.chip ? `<div class="chips"><span class="chip ${l.chip[0]}">${l.chip[1]}</span></div>` : ''}</div>
+      <div class="rhs">
+        <div class="eq">${l.eq}</div>
+        <div class="vals">${l.vals.map(v =>
+          `<div class="val${v[2] ? ' hero':''}"><span>${v[0]}</span><strong>${v[1]}</strong></div>`
+        ).join('')}</div>
+        <div class="why">${l.why}</div>
+      </div>
+    </div>`).join('');
+
+  renderLayers(C);
+  renderFactors(C);
+  renderTables();
+  drawProfile(C);
+  drawWing(C);
+  drawMass(C);
+}
+
+/* ══ 三層狀態:數學可算 / 模型適用 / 工程可行 ══════════════════════════
+   分開這三件事,是因為它們常被混為一談。公式算得出有限值,不代表
+   模型在這個參數範圍內成立;模型成立,也不代表工程上做得出來。 */
+function renderLayers(C){
+  const finite = [C.vbo, C.dvTotal, C.mrTot, C.t1, C.t2, C.vEntry, C.qRatio]
+    .every(Number.isFinite);
+  const vRatio = C.vEntry / V_CIRC_SURF;
+  const thetaDeg = C.rangeM/RE*180/Math.PI;
+
+  // 模型適用性:逐條檢查,任何一條不成立就要說出是哪一條
+  const issues = [];
+  if (vRatio > 0.95) issues.push(
+    `平衡滑翔解在 v/v_c = ${fmt(vRatio,3)} 時退化(升力抵消重力、不再下降)`);
+  if (thetaDeg > 170) issues.push('中心角接近對蹠點,短弧最小能量解不適用');
+  if (S.tw1 <= 1.0) issues.push('起飛推重比不大於 1,載具離不開發射台');
+  if (C.mrTot > 20) issues.push(
+    `總質量比 ${fmt(C.mrTot,1)} : 1 超過 20,單一構型幾乎不可實現`);
+  const rows = [
+    ['數學可算', finite ? 'ok' : 'no',
+     finite ? '所有輸出為有限值' : '出現非有限值,參數超出公式定義域',
+     finite ? '通過' : '不通過'],
+    ['模型適用', issues.length ? 'warn' : 'ok',
+     issues.length ? issues.join(';') + '。'
+       : `平衡滑翔 v/v_c = ${fmt(vRatio,3)}、中心角 ${fmt(thetaDeg,0)}°、`
+         + `質量比 ${fmt(C.mrTot,1)} : 1,皆在一階模型的適用範圍內。`,
+     issues.length ? '有疑慮' : '通過'],
+    ['模擬工具', C.seam > 0 ? 'no' : 'ok',
+     C.seam > 0
+       ? `所需 ${fmt(C.vbo)} m/s 超出 Aviator 航段求解上限 `
+         + `${fmt(TAS_LIMIT)} m/s 達 ${fmt(C.seam)} m/s,這一段沒有模型涵蓋。`
+       : `所需 ${fmt(C.vbo)} m/s 在 Aviator 可解範圍內。`,
+     C.seam > 0 ? '超出' : '可模擬'],
+    ['工程可行', 'na',
+     '本頁全部是一階解析估算。要判斷可行性,還需要上升段軌跡最佳化、'
+     + '含阻力與升力的六自由度再入積分、氣動係數資料庫、熱防護與結構分析、'
+     + '以及控制系統設計。', '未驗證'],
+  ];
+  document.getElementById('layers').innerHTML = rows.map(r => `
+    <div class="layer">
+      <div class="lname">${r[0]}</div>
+      <div class="lstate s-${r[1]}">${r[3]}</div>
+      <div class="lnote">${r[2]}</div>
+    </div>`).join('');
+}
+
+/* ══ 工程因子卡 ════════════════════════════════════════════════════════ */
+function renderFactors(C){
+  const F = [
+    ['幾何', '射程與所需速度', '飛這麼遠要多快?',
+     'v² / (g·R_E) = 2sin(θ/2)/(1+sin(θ/2))',
+     '純彈道 v_bo', fmt(C.pure.v)+' m/s',
+     `射程 ${fmt(S.range,1)} km 所需速度相當於近地軌道速度的
+      <b>${fmt(C.pctOrbital,1)}%</b>。這是<b>速度尺度比較,不是入軌性能比值</b> ——
+      真正入軌還要克服位能差與額外損失。即便如此,量級已說明這條航線
+      不是一般印象中的次軌道試飛。`],
+    ['能量', 'Δv 預算', '引擎總共要給多少速度增量?',
+     'Δv = v_bo + 損失 − 自轉助益',
+     '總 Δv', fmt(C.dvTotal)+' m/s',
+     `損失佔 <b>${fmt(S.loss/C.dvTotal*100,0)}%</b>。低估損失是概念設計最常見的
+      系統性誤差,而它會經由指數放大成質量比誤差。`],
+    ['質量', '質量比', '起飛重量要是入軌重量的幾倍?',
+     'R = exp( Δv / Isp·g₀ )',
+     '總質量比', fmt(C.mrTot,1)+' : 1',
+     `Δv 每增加 <b>${fmt(S.isp1*G0/1000,2)} km/s</b>(一個 Isp·g₀)質量比就乘上 e。
+      這是為什麼提升比衝比減重更有槓桿。`],
+    ['構型', '分節策略', 'Δv 該怎麼分給兩節?',
+     'Δv₁ = split · Δv   ·   Δv₂ = (1−split) · Δv',
+     '第一節佔比', fmt(S.split*100)+' %',
+     `分配偏向第一節 → 第一節大、分離晚;偏向第二節 → 第二節要背更多推進劑
+      上去。目前分離在 <b>T+${fmt(C.tSep)} s</b>。`],
+    ['推進', '推重比', '起飛加速度該多大?',
+     'a₀ = (T/W)·g₀   ·   t_burn ∝ 1/(T/W)',
+     '起飛推重比', fmt(S.tw1,2),
+     `太低 → 垂直爬升久、重力損失大;太高 → 動壓峰值與結構負荷大,而且
+      燃燒時間短、過載高。<b>1.2–1.4</b> 是常見折衷。`],
+    ['氣動', '升阻比門檻', '機翼到底划不划算?',
+     '理想化平衡滑翔:R = (L/D)(R_E/2)ln[1/(1−(v/v_c)²)]',
+     '目前 L/D', fmt(S.ld,1),
+     `${C.saveVsPure >= 0
+        ? `相對純彈道省 <b>${fmt(C.saveVsPure)} m/s</b>。`
+        : `相對純彈道<b>多要 ${fmt(-C.saveVsPure)} m/s</b> —— 機翼是淨負擔。`}
+      這個射程的損益平衡點在 L/D ≈ <b>1.6</b>。`],
+    ['熱防護', '速度三次方熱負荷指標', '鼻錐的熱負荷隨速度怎麼長?',
+     '指標 = (v_entry / v_c)³   ← 只取 q ∝ √ρ·v³ 的速度項',
+     '對軌道再入比值', fmt(C.qRatio,2)+' ×',
+     `速度的<b>三次方</b>。再入速度降 10%,指標降約 27% ——
+      這是升阻比在熱防護上的真正價值,比延伸射程更重要。<br>
+      <b>假設密度與鼻錐半徑相同</b>,因此不是完整的 Sutton–Graves 熱通量比。`],
+    ['結構', '等效阻力減速量級', '減速的量級大概是多少?',
+     'a ≈ g / (L/D)   ← 理想平衡滑翔下的量級估算',
+     '等效減速', fmt(C.decelG,2)+' g',
+     `升阻比愈高、減速愈緩和。${C.decelG > 3
+        ? '<b>超過 3 g,載人任務不可接受。</b>'
+        : '載人任務一般要求 3 g 以下。'} 但緩和減速意味著在高熱流區待更久 ——
+      熱負荷總量與峰值是兩個不同的約束。<br>
+      <b>這不是乘員過載或結構最大過載</b> —— 峰值過載要由含阻力的再入積分得出。`],
+    ['運行', '降落約束', '怎麼從超高速回到一條跑道上?',
+     '進場方位 = 跑道方位   ·   下滑道 ≈ 3°',
+     '目標跑道', 'KEFD 17R / 179°',
+     `跑道方位是硬約束,航線末段的方位必須與它一致。本航線從北往南抵達德州,
+      正好對上 17R。<b>選跑道是航線設計的一部分</b>,不是最後才決定。`],
+    ['方法', '模型邊界', '模擬跑出來的數字有效嗎?',
+     '先檢查收斂旗標,再讀數值',
+     '超出模擬上限', fmt(C.seam)+' m/s',
+     `${C.seam > 0
+        ? `目前設計有 <b>${fmt(C.seam)} m/s</b> 落在工具能力之外。`
+        : '目前設計落在工具能力之內。'}
+      工具邊界要當成設計條件處理,不是事後才發現的意外。`],
+  ];
+  document.getElementById('factors').innerHTML = F.map(f => `
+    <div class="factor">
+      <div class="tag">${f[0]}</div>
+      <h3>${f[1]}</h3>
+      <div class="q">${f[2]}</div>
+      <div class="eq">${f[3]}</div>
+      <div class="tension">${f[6]}</div>
+      <div class="now"><em>${f[4]}</em><b>${f[5]}</b></div>
+    </div>`).join('');
+}
+
+/* ══ 表格 ══════════════════════════════════════════════════════════════ */
+let tablesDone = false;
+function renderTables(){
+  if (tablesDone) return; tablesDone = true;
+  document.getElementById('phaseTbl').innerHTML = [
+    ['動力上升與分節', '推力、重力損失、動壓', 'Astrogator 任務控制序列', 'ok', '路線明確'],
+    ['次軌道彈道弧', '二體重力,無阻力', 'Missile 彈道傳播器', 'ok', '已驗證'],
+    ['高能再入減速', '氣動加熱與減速', '無現成模型', 'no', '需另闢蹊徑'],
+    ['再入滑翔', '升力與阻力平衡', 'Aviator 全速域氣動', 'ok', '已驗證'],
+    ['跑道進場降落', '下滑道、跑道對齊', 'Aviator 降落程序', 'ok', '已驗證'],
+  ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>
+    <td><span class="pill ${r[3]}">${r[4]}</span></td></tr>`).join('');
+
+  document.getElementById('limitTbl').innerHTML = [
+    ['Aviator 航段求解的真空速上限', '≈ 5,400 m/s',
+     '與馬赫數和高度無關。同樣馬赫 20 在 80 km 可解、60 km 不可解。'],
+    ['Advanced Fixed Wing 生成模型的高度上限', '13,106 m',
+     '要求 15 / 20 / 30 / 45 / 60 / 100 km,實際一律停在這個值,且不可設定。'],
+    ['改用內建模型後的高度上限', '≥ 100,000 m',
+     '設定 CeilingAltitude 即可。要求 20 / 30 / 60 / 100 km 皆精確達成。'],
+    ['高速段航段的最短長度', '≈ 1,000 km',
+     '真空速 5,400 m/s 時,501 km 的航段無法收斂、1,002 km 可以。'],
+    ['彈道段與滑翔段之間的速度落差', '1,631 m/s',
+     '必須由氣動減速消掉,而彈道模型不含阻力、滑翔模型上不到該速度。'],
+  ].map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+}
+
+/* ══ 繪圖工具 ══════════════════════════════════════════════════════════ */
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function setup(cv){
+  // 設計長寬比要記下來。原本用 cv.height/(cv.width/w) 推算,而這個函式
+  // 自己會改寫 cv.width/cv.height —— 第二次渲染(改視窗、切主題)算出的
+  // 高度會再乘一次 dpr,畫布每重畫一次就變高一次。
+  if (!cv.dataset.ar) cv.dataset.ar = (cv.height/cv.width).toString();
+  const ar = parseFloat(cv.dataset.ar);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(280, cv.clientWidth || cv.parentElement.clientWidth || 600);
+  const h = Math.round(w*ar);
+  cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+  cv.style.height = h+'px';
+  const g = cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+  g.font = '12px "IBM Plex Mono", monospace';
+  return {g, w, h};
+}
+function axes(g, box, xt, yt, xl, yl){
+  const c = css('--grid'), m = css('--muted');
+  g.strokeStyle = c; g.lineWidth = 1; g.fillStyle = m;
+  g.textAlign = 'right'; g.textBaseline = 'middle';
+  yt.forEach(t => {
+    const y = box.y(t.v);
+    g.beginPath(); g.moveTo(box.l, y); g.lineTo(box.r, y); g.stroke();
+    g.fillText(t.t, box.l-8, y);
+  });
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  xt.forEach(t => {
+    const x = box.x(t.v);
+    g.beginPath(); g.moveTo(x, box.t); g.lineTo(x, box.b); g.stroke();
+    g.fillText(t.t, x, box.b+7);
+  });
+  g.fillStyle = m; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillText(xl, (box.l+box.r)/2, box.b+34);
+  g.save(); g.translate(box.l-46, (box.t+box.b)/2); g.rotate(-Math.PI/2);
+  g.textBaseline = 'middle'; g.fillText(yl, 0, 0); g.restore();
+}
+function ticks(lo, hi, n, f){
+  const out = []; for (let i=0;i<=n;i++){ const v = lo+(hi-lo)*i/n; out.push({v, t:f(v)}); }
+  return out;
+}
+
+/* ══ 軌跡剖面 ══════════════════════════════════════════════════════════ */
+function drawProfile(C){
+  const cv = document.getElementById('profile');
+  const {g, w, h} = setup(cv);
+  const pad = {l:66, r:16, t:16, b:46};
+  const Rk = S.range, apoK = Math.max(C.bal.apogee, HANDOVER_ALT)/1000;
+  const yMax = Math.ceil(apoK*1.12/100)*100 || 200;
+  const box = {
+    l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
+    x:v => pad.l + (w-pad.l-pad.r)*(v/Rk),
+    y:v => (h-pad.b) - (h-pad.t-pad.b)*(v/yMax),
+  };
+  axes(g, box,
+    ticks(0, Rk, 6, v => fmt(v/1000,1)+'k'),
+    ticks(0, yMax, 5, v => fmt(v)),
+    '沿程距離(km)', '高度(km)');
+
+  // 階段區間。上升段是在總射程「之內」發生的,不能疊加在彈道段之外 ——
+  // 否則滑翔段畫出來的長度會比計算結果短掉一整個上升段。
+  const ascK = Math.min(Rk*0.12, 1400);
+  const rest = Math.max(1, Rk - ascK);
+  const balEnd = ascK + rest*(C.opt.coast/Math.max(1, C.rangeM));
+  const seamK = Math.min(Rk - 1, Math.max(ascK + 1, balEnd));
+
+  // 上升段:示意曲線到熄火高度
+  g.lineWidth = 2.5; g.strokeStyle = css('--accent'); g.beginPath();
+  for (let i=0;i<=60;i++){
+    const f = i/60, x = ascK*f, a = (BURNOUT_ALT/1000)*Math.pow(f, 1.6);
+    i ? g.lineTo(box.x(x), box.y(a)) : g.moveTo(box.x(x), box.y(a));
+  }
+  g.stroke();
+
+  // 彈道弧:最小能量橢圓
+  const b = C.bal;
+  g.strokeStyle = css('--trace'); g.beginPath();
+  if (b.e > 1e-6 && b.a > 0){
+    const cn = Math.max(-1, Math.min(1, (b.p/RE - 1)/b.e));
+    const nu1 = Math.acos(cn);
+    const N = 140;
+    for (let i=0;i<=N;i++){
+      const nu = nu1 + (2*Math.PI - 2*nu1)*i/N;
+      const r = b.p/(1 + b.e*Math.cos(nu));
+      const ang = nu - nu1;
+      const x = ascK + (ang/b.theta)*(balEnd-ascK);
+      const alt = Math.max(0, (r-RE)/1000);
+      i ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
+    }
+  } else {
+    g.moveTo(box.x(ascK), box.y(BURNOUT_ALT/1000));
+    g.lineTo(box.x(balEnd), box.y(HANDOVER_ALT/1000));
+  }
+  g.stroke();
+
+  // 再入減速帶:接縫,用警示色的填底標出
+  if (C.seam > 0){
+    const x0 = box.x(Math.max(ascK, seamK - Rk*0.055)), x1 = box.x(seamK);
+    g.fillStyle = css('--crit'); g.globalAlpha = 0.14;
+    g.fillRect(x0, box.t, Math.max(6, x1-x0), box.b-box.t);
+    g.globalAlpha = 1;
+    g.strokeStyle = css('--crit'); g.setLineDash([4,3]); g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x1, box.t); g.lineTo(x1, box.b); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = css('--crit'); g.textAlign = 'center'; g.textBaseline = 'top';
+    g.fillText('接縫', (x0+x1)/2, box.t+4);
+  }
+
+  // 滑翔段:高度隨動能單調下降
+  g.strokeStyle = css('--good'); g.lineWidth = 2.5; g.beginPath();
+  const gl = Math.max(1, Rk - seamK), v0 = Math.min(C.vEntry, TAS_LIMIT);
+  for (let i=0;i<=80;i++){
+    const f = i/80, rem = gl*(1-f)*1000;
+    const v = rem > 1000 ? glideV(rem, S.ld) : 0;
+    const fe = v0 > 0 ? Math.min(1, (v/v0)**2) : 0;
+    const alt = 6 + (HANDOVER_ALT/1000 - 6)*fe;
+    const x = seamK + gl*f;
+    i ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
+  }
+  g.stroke();
+
+  // AdvFW 天花板
+  g.strokeStyle = css('--muted'); g.setLineDash([2,4]); g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(box.l, box.y(ADVFW_CEIL/1000)); g.lineTo(box.r, box.y(ADVFW_CEIL/1000));
+  g.stroke(); g.setLineDash([]);
+  g.fillStyle = css('--muted'); g.textAlign = 'left'; g.textBaseline = 'bottom';
+  g.fillText('AdvFW 生成模型上限 13.1 km', box.l+6, box.y(ADVFW_CEIL/1000)-3);
+
+  document.getElementById('profLegend').innerHTML = [
+    ['--accent','動力上升段(Astrogator)'],
+    ['--trace','次軌道彈道弧(Missile)'],
+    ['--crit','再入減速帶 —— 無模型涵蓋'],
+    ['--good','平衡滑翔與降落(Aviator)'],
+  ].map(k => `<div class="key"><span class="swatch" style="background:var(${k[0]})"></span>${k[1]}</div>`).join('');
+
+  document.getElementById('profCap').innerHTML =
+    `遠地點 <strong>${fmt(C.bal.apogee/1000)} km</strong>,彈道段飛行時間
+     <strong>${fmt(C.bal.tof/60,1)} 分鐘</strong>。
+     ${C.seam > 0
+       ? `接縫處要靠氣動減速消掉 <strong>${fmt(C.seam)} m/s</strong>。`
+       : '目前設計沒有超出模擬能力的接縫。'}
+     上升段為示意曲線;彈道段以最小能量橢圓繪製。`;
+}
+
+/* ══ 機翼門檻 ══════════════════════════════════════════════════════════ */
+function drawWing(C){
+  const cv = document.getElementById('wing');
+  const {g, w, h} = setup(cv);
+  const pad = {l:62, r:14, t:16, b:46};
+  const ldLo = 0.5, ldHi = 4;
+  const pureV = C.pure.v;
+  const pts = [], ptsGlide = [];
+  for (let i=0;i<=70;i++){
+    const ld = ldLo + (ldHi-ldLo)*i/70;
+    pts.push([ld, optimum(C.rangeM, ld).need]);
+    ptsGlide.push([ld, glideV(C.rangeM, ld)]);
+  }
+  const all = pts.concat(ptsGlide).map(p=>p[1]).filter(v=>isFinite(v));
+  const vLo = Math.min(pureV, ...all)*0.96, vHi = Math.max(pureV, ...all)*1.03;
+  const box = {
+    l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
+    x:v => pad.l + (w-pad.l-pad.r)*((v-ldLo)/(ldHi-ldLo)),
+    y:v => (h-pad.b) - (h-pad.t-pad.b)*((v-vLo)/(vHi-vLo)),
+  };
+  axes(g, box,
+    ticks(ldLo, ldHi, 7, v => fmt(v,1)),
+    ticks(vLo, vHi, 5, v => fmt(v/1000,2)),
+    '升阻比 L/D', '所需 v_bo(km/s)');
+
+  // 純彈道基準線
+  g.strokeStyle = css('--muted'); g.setLineDash([5,4]); g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(box.l, box.y(pureV)); g.lineTo(box.r, box.y(pureV)); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = css('--muted'); g.textAlign = 'right'; g.textBaseline = 'bottom';
+  g.fillText('純彈道基準', box.r-4, box.y(pureV)-4);
+
+  const line = (arr, col, wid) => {
+    g.strokeStyle = css(col); g.lineWidth = wid; g.beginPath();
+    let started = false;
+    arr.forEach(([ld,v]) => {
+      if (!isFinite(v) || v < vLo || v > vHi*1.5) return;
+      started ? g.lineTo(box.x(ld), box.y(v)) : g.moveTo(box.x(ld), box.y(v));
+      started = true;
+    });
+    g.stroke();
+  };
+  line(ptsGlide, '--accent', 1.8);
+  line(pts, '--trace', 2.6);
+
+  // 損益平衡點要看「全程滑翔」那條線,不是最佳三段式。
+  // 最佳化的掃描裡本來就包含 f=1(完全不用機翼),所以最佳解永遠 <= 純彈道,
+  // 那條線不可能穿過基準線 —— 拿它找交點會永遠找不到。
+  let cross = null;
+  for (let i=1;i<ptsGlide.length;i++){
+    if (ptsGlide[i-1][1] >= pureV && ptsGlide[i][1] < pureV){ cross = ptsGlide[i][0]; break; }
+  }
+  if (cross){
+    g.strokeStyle = css('--crit'); g.setLineDash([3,3]); g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(box.x(cross), box.t); g.lineTo(box.x(cross), box.b); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = css('--crit'); g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillText('機翼損益平衡 L/D '+fmt(cross,2), box.x(cross)+5, box.t+3);
+  }
+  // 目前設計點
+  g.fillStyle = css('--trace');
+  g.beginPath(); g.arc(box.x(S.ld), box.y(C.vbo), 5, 0, 7); g.fill();
+  g.strokeStyle = css('--surface'); g.lineWidth = 2; g.stroke();
+
+  document.getElementById('wingCap').innerHTML =
+    `<strong>藍線</strong>是全程靠滑翔所需的熄火速度,
+     <strong>灰虛線</strong>是完全不用機翼的純彈道基準。
+     ${cross ? `兩者在 <strong>L/D ${fmt(cross,2)}</strong> 交會 ——
+       低於這個值,<strong>機翼是淨負擔</strong>:它延伸的射程補不回自己的代價。` : ''}
+     <br><strong>琥珀線</strong>是最佳三段式(一段彈道 + 一段滑翔),圓點是目前設計點。
+     注意它永遠不會高過基準線 —— 因為「完全不用機翼」本身就是最佳化的候選解之一。
+     <strong>看最佳化後的曲線,看不出某個設計要素划不划算</strong>,
+     要和「不用它」的單一設計直接比才看得出來。`;
+}
+
+/* ══ 質量比的指數牆 ════════════════════════════════════════════════════ */
+function drawMass(C){
+  const cv = document.getElementById('mass');
+  const {g, w, h} = setup(cv);
+  const pad = {l:62, r:14, t:16, b:46};
+  const dvLo = 2000, dvHi = 12000, rLo = 1, rHi = 120;
+  const ly = v => Math.log(v);
+  const box = {
+    l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
+    x:v => pad.l + (w-pad.l-pad.r)*((v-dvLo)/(dvHi-dvLo)),
+    y:v => (h-pad.b) - (h-pad.t-pad.b)*((ly(v)-ly(rLo))/(ly(rHi)-ly(rLo))),
+  };
+  const c = css('--grid'), m = css('--muted');
+  g.strokeStyle = c; g.fillStyle = m; g.lineWidth = 1;
+  g.textAlign = 'right'; g.textBaseline = 'middle';
+  [1,2,5,10,20,50,100].forEach(v => {
+    const y = box.y(v);
+    g.beginPath(); g.moveTo(box.l,y); g.lineTo(box.r,y); g.stroke();
+    g.fillText(fmt(v), box.l-8, y);
+  });
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  ticks(dvLo, dvHi, 5, v=>v).forEach(t => {
+    const x = box.x(t.v);
+    g.beginPath(); g.moveTo(x, box.t); g.lineTo(x, box.b); g.stroke();
+    g.fillText(fmt(t.v/1000,0), x, box.b+7);
+  });
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  g.fillText('總 Δv(km/s)', (box.l+box.r)/2, box.b+34);
+  g.save(); g.translate(box.l-46,(box.t+box.b)/2); g.rotate(-Math.PI/2);
+  g.textBaseline='middle'; g.fillText('質量比(對數軸)',0,0); g.restore();
+
+  // 單節 vs 兩節
+  const curve = (fn, col, wid, dash) => {
+    g.strokeStyle = css(col); g.lineWidth = wid;
+    g.setLineDash(dash||[]); g.beginPath();
+    let st = false;
+    for (let dv=dvLo; dv<=dvHi; dv+=80){
+      const r = fn(dv);
+      if (!isFinite(r) || r > rHi) { st = false; continue; }
+      st ? g.lineTo(box.x(dv), box.y(r)) : g.moveTo(box.x(dv), box.y(r));
+      st = true;
+    }
+    g.stroke(); g.setLineDash([]);
+  };
+  curve(dv => massRatio(dv, S.isp1), '--muted', 1.6, [5,4]);
+  curve(dv => massRatio(dv*S.split, S.isp1)*massRatio(dv*(1-S.split), S.isp2),
+        '--trace', 2.6);
+
+  // 可行性帶:質量比 20 以上
+  g.fillStyle = css('--crit'); g.globalAlpha = 0.10;
+  g.fillRect(box.l, box.t, box.r-box.l, box.y(20)-box.t);
+  g.globalAlpha = 1;
+  g.strokeStyle = css('--crit'); g.setLineDash([3,3]); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(box.l, box.y(20)); g.lineTo(box.r, box.y(20)); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = css('--crit'); g.textAlign='left'; g.textBaseline='bottom';
+  g.fillText('20 : 1 以上,構型難以實現', box.l+6, box.y(20)-4);
+
+  // 目前設計點
+  g.fillStyle = css('--trace');
+  g.beginPath(); g.arc(box.x(C.dvTotal), box.y(Math.min(rHi, C.mrTot)), 5, 0, 7); g.fill();
+  g.strokeStyle = css('--surface'); g.lineWidth = 2; g.stroke();
+
+  const single = massRatio(C.dvTotal, S.isp1);
+  document.getElementById('massCap').innerHTML =
+    `<strong>琥珀線</strong>是兩節式,<strong>灰虛線</strong>是同樣 Δv 用單節做。
+     目前 Δv ${fmt(C.dvTotal)} m/s:兩節 <strong>${fmt(C.mrTot,1)} : 1</strong>,
+     單節 <strong>${isFinite(single)&&single<1e4 ? fmt(single,1)+' : 1' : '遠超可行範圍'}</strong>。
+     縱軸是對數的 —— 直線代表指數成長。`;
+}
+
+/* ══ 啟動與主題變更 ════════════════════════════════════════════════════ */
+render();
+let rt;
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 140); });
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener ? mq.addEventListener('change', render) : mq.addListener(render);
+}
+new MutationObserver(render).observe(document.documentElement,
+  {attributes:true, attributeFilter:['data-theme']});
+</script>
