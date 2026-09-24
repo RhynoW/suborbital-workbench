@@ -413,7 +413,9 @@ const RE = 6378137.0, MU = 3.986004418e14, G0 = 9.80665;
 const V_CIRC_SURF = Math.sqrt(MU / RE);            // 7,910 m/s
 const V_CIRC_200 = Math.sqrt(MU / (RE + 200000));  // 7,784 m/s
 const LAT = 22.0620, AZ = 35.335;                  // 旭海 / 大圓方位
-const BURNOUT_ALT = 100000, HANDOVER_ALT = 80000, ENTRY_ALT = 120000;
+const KARMAN = 100000;          // 卡門線:助推段的目標熄火高度
+const GAMMA_BO = 2.0;           // 熄火飛行路徑角(度)。淺角度是助推滑翔的關鍵
+const CL_GLIDE = 0.8;           // 滑翔段配平升力係數
 const TAS_LIMIT = 5400;                            // Aviator 實測上限 m/s
 const ADVFW_CEIL = 13106;                          // AdvFW 生成模型上限 m
 
@@ -446,29 +448,101 @@ function glideV(range, ld){
   const x = 1 - Math.exp(-range/(ld*RE/2));
   return V_CIRC_SURF*Math.sqrt(Math.max(0, x));
 }
-// 三段式:掃滑行佔比,取所需 v_bo 最小者(兩段取大者是保守的一階近似)
-function optimum(range, ld){
-  let best = {need: Infinity};
-  for (let i = 0; i <= 50; i++){
-    const f = i/50, coast = range*f, gl = range*(1-f);
-    const vC = f > 0 ? ballistic(coast/RE).v : 0;
-    const vE = gl > 1000 ? glideV(gl, ld) : 0;
-    const need = Math.max(vC, vE);
-    if (need < best.need) best = {need, f, coast, glide: gl, vCoast: vC, vEntry: vE};
+/* ── 淺角度助推滑翔 ─────────────────────────────────────────────────
+   **這裡原本是一個分段代理模型,已經被推翻並移除。**
+
+   舊版把射程拆成「大氣層外滑行」+「平衡滑翔」,各自算所需速度取較大者,
+   再掃描分配比例取最小。它算出 L/D 2.0 時 v_bo = 6,406 m/s,
+   比全程滑翔的 7,382 便宜近一千。
+
+   那個便宜是假的。最小能量彈道的熄火角是 γ = 45° − θ/4,射程愈短角度
+   愈陡 —— 6,292 km 的滑行段對應 γ = 30.9°,把載具拋到 **1,130 km**,
+   是卡門線的 11 倍。沒有任何乘波/滑翔飛行器會那樣飛。
+
+   現在改成真正的助推滑翔:淺角度熄火在卡門線附近,全程靠升力。
+   遠地點降到約 107 km。代價是同一個 L/D 下更貴,但要把 Δv 賺回來
+   靠的是提高升阻比,不是拋高彈道。
+   ───────────────────────────────────────────────────────────────── */
+function orbitFromBurnout(r, v, gammaDeg){
+  const g = gammaDeg*Math.PI/180;
+  const eps = v*v/2 - MU/r, a = -MU/(2*eps);
+  const h = r*v*Math.cos(g), p = h*h/MU;
+  const e = Math.sqrt(Math.max(0, 1 - p/a));
+  return {a, e, p, apogee: a*(1+e) - RE, perigee: a*(1-e) - RE};
+}
+// US Std 1976 密度;86 km 以上以標高 6 km 指數外插(標示出來,不是標準的一部分)
+function us76Density(h){
+  const L = [[0,288.15,-0.0065,101325],[11000,216.65,0,22632.1],
+             [20000,216.65,0.001,5474.89],[32000,228.65,0.0028,868.019],
+             [47000,270.65,0,110.906],[51000,270.65,-0.0028,66.9389],
+             [71000,214.65,-0.002,3.95642],[84852,186.946,0,0.373384]];
+  const R = 287.053;
+  if (h > 84852) return (0.373384/(R*186.946))*Math.exp(-(h-84852)/6000);
+  let [hb,tb,lr,pb] = L[0];
+  for (const l of L){ if (h >= l[0]) [hb,tb,lr,pb] = l; else break; }
+  let t, p;
+  if (lr === 0){ t = tb; p = pb*Math.exp(-G0*(h-hb)/(R*tb)); }
+  else { t = tb + lr*(h-hb); p = pb*Math.pow(t/tb, -G0/(lr*R)); }
+  return p/(R*t);
+}
+// 平衡滑翔高度:升力 = 離心解除後的有效重量
+function equilibriumGlideAlt(v, wl){
+  const eff = Math.max(0, 1 - (v/V_CIRC_SURF)**2);
+  const need = wl*G0*eff;
+  if (need <= 0 || v <= 0) return KARMAN;
+  const rho = 2*need/(CL_GLIDE*v*v);
+  let lo = 0, hi = 130000;
+  for (let i = 0; i < 70; i++){
+    const m = (lo+hi)/2;
+    if (us76Density(m) > rho) lo = m; else hi = m;
   }
-  return best;
+  return (lo+hi)/2;
+}
+function boostGlide(range, ld, wl){
+  const v = glideV(range, ld);
+  const o = orbitFromBurnout(RE + KARMAN, v, GAMMA_BO);
+  const glAlt = equilibriumGlideAlt(v, wl);
+  // 真空弧:沿圓錐曲線從熄火點降到平衡滑翔高度
+  let arc = 0;
+  if (o.e > 1e-9){
+    const nuOf = r => Math.acos(Math.max(-1, Math.min(1, (o.p/r - 1)/o.e)));
+    arc = Math.min(range*0.5,
+      ((2*Math.PI - nuOf(RE+glAlt)) - nuOf(RE+KARMAN))*RE);
+  }
+  const vHo = Math.min(v, TAS_LIMIT);
+  const aviator = Math.max(0, Math.min(range - arc, glideRangeOf(vHo, ld)));
+  return {v_bo: v, apogee: o.apogee, e: o.e, p: o.p, a: o.a,
+          glideAlt: glAlt, arc, aviator,
+          seam: Math.max(0, range - arc - aviator),
+          seamDv: Math.max(0, v - TAS_LIMIT)};
+}
+function glideRangeOf(v, ld){
+  const x = (v/V_CIRC_SURF)**2;
+  return x >= 1 ? Infinity : ld*(RE/2)*Math.log(1/(1-x));
+}
+// 反解:要把熄火速度壓到 v_target,需要多少升阻比
+function ldForVelocity(range, vTarget){
+  let lo = 0.5, hi = 25;
+  for (let i = 0; i < 80; i++){
+    const m = (lo+hi)/2;
+    if (glideV(range, m) > vTarget) lo = m; else hi = m;
+  }
+  return (lo+hi)/2;
 }
 const rotAssist = () => 465.1*Math.cos(LAT*Math.PI/180)*Math.sin(AZ*Math.PI/180);
 const massRatio = (dv, isp) => Math.exp(dv/(isp*G0));
 const tBurn = (isp, R, tw) => isp*(1 - 1/R)/tw;
 
 /* ══ 設計變數 ══════════════════════════════════════════════════════════ */
-const DEFAULTS = {range:13109.3, ld:2.0, isp1:285, isp2:340, split:0.62, tw1:1.30, loss:1600};
+const DEFAULTS = {range:13109.3, ld:4.0, wl:250, isp1:285, isp2:340,
+                  split:0.62, tw1:1.30, loss:1600};
 const SPEC = [
   {k:'range', label:'目標射程', unit:'km', min:2000, max:16000, step:0.1,
    hint:'太空港之間的大圓距離。預設是旭海到休士頓。'},
-  {k:'ld', label:'升阻比 L/D', unit:'', min:0.5, max:4, step:0.1,
-   hint:'高超音速下的升阻比。升力體約 1–2,有翼可到 2–3。'},
+  {k:'ld', label:'升阻比 L/D', unit:'', min:0.5, max:8, step:0.1,
+   hint:'高超音速升阻比。鈍體約 0.3,升力體 1–2,有翼 2–3,乘波體 4–6。'},
+  {k:'wl', label:'翼負荷', unit:'kg/m²', min:80, max:600, step:10,
+   hint:'決定平衡滑翔的高度。愈重則滑翔高度愈低、熱負荷愈大。'},
   {k:'isp1', label:'第一節比衝', unit:'s', min:240, max:340, step:5,
    hint:'煤油/液氧約 285,固體約 250,液氫約 360。'},
   {k:'isp2', label:'第二節比衝', unit:'s', min:280, max:460, step:5,
@@ -512,10 +586,9 @@ document.getElementById('reset').addEventListener('click', () => {
 /* ══ 計算 ══════════════════════════════════════════════════════════════ */
 function compute(){
   const rangeM = S.range*1000;
-  const pure = ballistic(rangeM/RE);
-  const opt = optimum(rangeM, S.ld);
-  const vbo = opt.need;
-  const bal = ballistic(Math.max(1, opt.coast)/RE);
+  const pure = ballistic(rangeM/RE);          // 不用機翼的比較基準
+  const bg = boostGlide(rangeM, S.ld, S.wl);
+  const vbo = bg.v_bo;
   const assist = rotAssist();
   const dvTotal = vbo + S.loss - assist;
   const dv1 = dvTotal*S.split, dv2 = dvTotal - dv1;
@@ -524,21 +597,19 @@ function compute(){
   const tw2 = 0.8;
   const t1 = tBurn(S.isp1, mr1, S.tw1), t2 = tBurn(S.isp2, mr2, tw2);
   const coastS = 6;
-  const vEntry = opt.vEntry || vbo;
-  // 熱通量:q ∝ √ρ·v³。同高度下取比值,以軌道再入(7,910 m/s)為 1
+  const vEntry = vbo;
+  // 熱負荷:只取 q ∝ √ρ·v³ 的速度項,以軌道再入速度為 1
   const qRatio = (vEntry/V_CIRC_SURF)**3;
   const decelG = 1/Math.max(0.1, S.ld);
-  const seam = Math.max(0, vbo - TAS_LIMIT);
   const pctOrbital = vbo/V_CIRC_200*100;
   const saveVsPure = pure.v - vbo;
-  return {rangeM, pure, opt, vbo, bal, assist, dvTotal, dv1, dv2, mr1, mr2, mrTot,
-          tw2, t1, t2, coastS, tSep:t1, tBO:t1+coastS+t2, vEntry, qRatio, decelG,
-          seam, pctOrbital, saveVsPure,
-          apogee: opt.f > 0.02 ? bal.apogee : glideApogee(opt, S.ld)};
+  const ldSeamFree = ldForVelocity(rangeM, TAS_LIMIT);
+  return {rangeM, pure, bg, vbo, assist, dvTotal, dv1, dv2, mr1, mr2, mrTot,
+          tw2, t1, t2, coastS, tSep:t1, tBO:t1+coastS+t2, vEntry, qRatio,
+          decelG, seam: bg.seamDv, seamKm: bg.seam, pctOrbital, saveVsPure,
+          apogee: bg.apogee, ldSeamFree};
 }
-function glideApogee(){ return HANDOVER_ALT; }
 
-/* ══ 渲染:頁首 + 推導鏈 ═══════════════════════════════════════════════ */
 function render(){
   SPEC.forEach(s => {
     const v = S[s.k];
@@ -551,7 +622,7 @@ function render(){
     ['航線', `旭海 → KEFD`],
     ['射程', `${fmt(S.range)} km`],
     ['所需熄火速度', `${fmt(C.vbo)} m/s`],
-    ['佔入軌速度', `${fmt(C.pctOrbital,1)} %`],
+    ['遠地點', `${fmt(C.apogee/1000)} km`],
     ['總質量比', `${fmt(C.mrTot,1)} : 1`],
     ['分離時刻', `T+${fmt(C.tSep)} s`],
   ].map(([k,v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
@@ -573,22 +644,24 @@ function render(){
           射程加倍需要的速度遠不止加倍,因為分母的 sin(θ/2) 也在長。<br>
           <em>假設:二體球形地球、無大氣、起落點同半徑、瞬時脈衝、取短弧解,
           不含地球自轉造成的慣性座標差異。</em>`},
-    {step:'步驟 3', name:'加入機翼 → 分段代理模型', chip:['proxy','代理模型'],
+    {step:'步驟 3', name:'加入機翼 → 淺角度助推滑翔', chip:['calc','物理模型'],
      eq:'R_glide = (L/D)·(R_E/2)·ln[ 1 / (1 − (v/v_c)²) ]',
-     vals:[['最佳滑行佔比', fmt(C.opt.f*100)+' %'],
-           ['彈道段', fmt(C.opt.coast/1000)+' km'],
-           ['滑翔段', fmt(C.opt.glide/1000)+' km'],
-           ['所需 v_bo', fmt(C.vbo)+' m/s', true]],
-     why:`滑翔射程與 L/D 成正比,但再入速度的需求下降得慢。
-          目前 L/D ${fmt(S.ld,1)} 相對純彈道
+     vals:[['熄火高度', fmt(KARMAN/1000)+' km'],
+           ['熄火角 γ', fmt(GAMMA_BO,1)+'°'],
+           ['所需 v_bo', fmt(C.vbo)+' m/s', true],
+           ['遠地點', fmt(C.apogee/1000)+' km'],
+           ['平衡滑翔高度', fmt(C.bg.glideAlt/1000,1)+' km']],
+     why:`熄火速度直接由全程滑翔射程反解,熄火點放在卡門線附近、角度壓低,
+          之後全程靠升力。目前 L/D ${fmt(S.ld,1)} 相對純彈道
           ${C.saveVsPure >= 0
             ? `<strong style="color:var(--good)">省下 ${fmt(C.saveVsPure)} m/s</strong>`
-            : `<strong style="color:var(--crit)">反而多要 ${fmt(-C.saveVsPure)} m/s</strong>`}。
-          機翼的重量與阻力不是免費的。<br>
-          <em><strong>這是分段代理模型,不是真實可行軌跡。</strong>
-          它把彈道段與滑翔段當成互相獨立的需求,各算各的再取大者。
-          真實情況兩段透過能量、彈道角與時間連續性耦合 ——
-          所以這個值既不是上界也不是下界,只用來呈現參數耦合的趨勢。</em>`},
+            : `<strong style="color:var(--crit)">反而多要 ${fmt(-C.saveVsPure)} m/s</strong>`}。<br>
+          <em><strong>這裡原本是一個分段代理模型,已經被推翻。</strong>
+          它把射程拆成大氣層外滑行 + 平衡滑翔各自求解,算出的 v_bo 便宜近
+          一千 m/s —— 但對應的軌跡遠地點 <strong>1,130 km</strong>,
+          是卡門線的 11 倍,沒有乘波/滑翔飛行器會那樣飛。
+          每個數字都對,組合起來卻不可飛;這個錯誤是從
+          <strong>軌跡形狀</strong>看出來的,不是數值檢查抓到的。</em>`},
     {step:'步驟 4', name:'速度 → Δv 預算',
      eq:'Δv_total = v_bo + 損失 − 自轉助益',
      vals:[['損失假設', fmt(S.loss)+' m/s'],
@@ -687,8 +760,10 @@ function renderLayers(C){
      issues.length ? '有疑慮' : '通過'],
     ['模擬工具', C.seam > 0 ? 'no' : 'ok',
      C.seam > 0
-       ? `所需 ${fmt(C.vbo)} m/s 超出 Aviator 航段求解上限 `
-         + `${fmt(TAS_LIMIT)} m/s 達 ${fmt(C.seam)} m/s,這一段沒有模型涵蓋。`
+       ? `所需 ${fmt(C.vbo)} m/s 超出求解上限 ${fmt(TAS_LIMIT)} m/s 達 `
+         + `${fmt(C.seam)} m/s,對應 ${fmt(C.seamKm/1000)} km 的高速滑翔`
+         + `(全程的 ${fmt(C.seamKm/C.rangeM*100)}%)沒有模型涵蓋。`
+         + `升阻比提高到 ${fmt(C.ldSeamFree,2)} 即可消除。`
        : `所需 ${fmt(C.vbo)} m/s 在 Aviator 可解範圍內。`,
      C.seam > 0 ? '超出' : '可模擬'],
     ['工程可行', 'na',
@@ -740,7 +815,9 @@ function renderFactors(C){
      `${C.saveVsPure >= 0
         ? `相對純彈道省 <b>${fmt(C.saveVsPure)} m/s</b>。`
         : `相對純彈道<b>多要 ${fmt(-C.saveVsPure)} m/s</b> —— 機翼是淨負擔。`}
-      這個射程的損益平衡點在 L/D ≈ <b>1.6</b>。`],
+      損益平衡點在 L/D ≈ <b>1.6</b>;
+      而 L/D ≈ <b>${fmt(C.ldSeamFree,2)}</b> 時熄火速度降到模擬上限以下,
+      <b>模型接縫消失</b>。`],
     ['熱防護', '速度三次方熱負荷指標', '鼻錐的熱負荷隨速度怎麼長?',
      '指標 = (v_entry / v_c)³   ← 只取 q ∝ √ρ·v³ 的速度項',
      '對軌道再入比值', fmt(C.qRatio,2)+' ×',
@@ -855,8 +932,8 @@ function drawProfile(C){
   const cv = document.getElementById('profile');
   const {g, w, h} = setup(cv);
   const pad = {l:66, r:16, t:16, b:46};
-  const Rk = S.range, apoK = Math.max(C.bal.apogee, HANDOVER_ALT)/1000;
-  const yMax = Math.ceil(apoK*1.12/100)*100 || 200;
+  const Rk = S.range;
+  const yMax = Math.max(120, Math.ceil(C.apogee/1000*1.25/10)*10);
   const box = {
     l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
     x:v => pad.l + (w-pad.l-pad.r)*(v/Rk),
@@ -864,93 +941,102 @@ function drawProfile(C){
   };
   axes(g, box,
     ticks(0, Rk, 6, v => fmt(v/1000,1)+'k'),
-    ticks(0, yMax, 5, v => fmt(v)),
+    ticks(0, yMax, 6, v => fmt(v)),
     '沿程距離(km)', '高度(km)');
 
-  // 階段區間。上升段是在總射程「之內」發生的,不能疊加在彈道段之外 ——
-  // 否則滑翔段畫出來的長度會比計算結果短掉一整個上升段。
-  const ascK = Math.min(Rk*0.12, 1400);
-  const rest = Math.max(1, Rk - ascK);
-  const balEnd = ascK + rest*(C.opt.coast/Math.max(1, C.rangeM));
-  const seamK = Math.min(Rk - 1, Math.max(ascK + 1, balEnd));
+  // 卡門線 —— 這張圖的基準線
+  g.strokeStyle = css('--muted'); g.setLineDash([2,4]); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(box.l, box.y(KARMAN/1000));
+  g.lineTo(box.r, box.y(KARMAN/1000)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = css('--muted'); g.textAlign='left'; g.textBaseline='bottom';
+  g.fillText('卡門線 100 km', box.l+6, box.y(KARMAN/1000)-3);
 
-  // 上升段:示意曲線到熄火高度
+  const ascK = Math.min(Rk*0.08, 900);              // 動力上升段(示意)
+  const arcK = Math.min(Rk - ascK, C.bg.arc/1000);  // 真空弧
+  const arcEnd = ascK + arcK;
+  const seamK = Math.min(Rk - arcEnd, C.seamKm/1000);
+  const glideStart = arcEnd + seamK;
+
+  // 上升段:示意曲線爬到卡門線
   g.lineWidth = 2.5; g.strokeStyle = css('--accent'); g.beginPath();
-  for (let i=0;i<=60;i++){
-    const f = i/60, x = ascK*f, a = (BURNOUT_ALT/1000)*Math.pow(f, 1.6);
-    i ? g.lineTo(box.x(x), box.y(a)) : g.moveTo(box.x(x), box.y(a));
+  for (let k=0;k<=60;k++){
+    const f = k/60, x = ascK*f, a = (KARMAN/1000)*Math.pow(f, 1.6);
+    k ? g.lineTo(box.x(x), box.y(a)) : g.moveTo(box.x(x), box.y(a));
   }
   g.stroke();
 
-  // 彈道弧:最小能量橢圓
-  const b = C.bal;
+  // 真空弧:圓錐曲線,遠地點在卡門線略上方
   g.strokeStyle = css('--trace'); g.beginPath();
-  if (b.e > 1e-6 && b.a > 0){
-    const cn = Math.max(-1, Math.min(1, (b.p/RE - 1)/b.e));
-    const nu1 = Math.acos(cn);
-    const N = 140;
-    for (let i=0;i<=N;i++){
-      const nu = nu1 + (2*Math.PI - 2*nu1)*i/N;
-      const r = b.p/(1 + b.e*Math.cos(nu));
-      const ang = nu - nu1;
-      const x = ascK + (ang/b.theta)*(balEnd-ascK);
+  const bg = C.bg;
+  if (bg.e > 1e-9 && arcK > 1){
+    const nuOf = r => Math.acos(Math.max(-1, Math.min(1, (bg.p/r - 1)/bg.e)));
+    const n1 = nuOf(RE + KARMAN), n2 = 2*Math.PI - nuOf(RE + bg.glideAlt);
+    const N = 120;
+    for (let k=0;k<=N;k++){
+      const nu = n1 + (n2-n1)*k/N;
+      const r = bg.p/(1 + bg.e*Math.cos(nu));
+      const x = ascK + arcK*k/N;
       const alt = Math.max(0, (r-RE)/1000);
-      i ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
+      k ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
     }
   } else {
-    g.moveTo(box.x(ascK), box.y(BURNOUT_ALT/1000));
-    g.lineTo(box.x(balEnd), box.y(HANDOVER_ALT/1000));
+    g.moveTo(box.x(ascK), box.y(KARMAN/1000));
+    g.lineTo(box.x(arcEnd), box.y(bg.glideAlt/1000));
   }
   g.stroke();
 
-  // 再入減速帶:接縫,用警示色的填底標出
-  if (C.seam > 0){
-    const x0 = box.x(Math.max(ascK, seamK - Rk*0.055)), x1 = box.x(seamK);
+  // 接縫:沒有模型涵蓋的高速滑翔
+  if (seamK > 1){
+    const x0 = box.x(arcEnd), x1 = box.x(glideStart);
     g.fillStyle = css('--crit'); g.globalAlpha = 0.14;
-    g.fillRect(x0, box.t, Math.max(6, x1-x0), box.b-box.t);
+    g.fillRect(x0, box.t, Math.max(4, x1-x0), box.b-box.t);
     g.globalAlpha = 1;
     g.strokeStyle = css('--crit'); g.setLineDash([4,3]); g.lineWidth = 1.5;
-    g.beginPath(); g.moveTo(x1, box.t); g.lineTo(x1, box.b); g.stroke();
-    g.setLineDash([]);
-    g.fillStyle = css('--crit'); g.textAlign = 'center'; g.textBaseline = 'top';
-    g.fillText('接縫', (x0+x1)/2, box.t+4);
+    g.beginPath(); g.moveTo(x0, box.t); g.lineTo(x0, box.b);
+    g.moveTo(x1, box.t); g.lineTo(x1, box.b); g.stroke(); g.setLineDash([]);
+    // 接縫內的滑翔:畫成虛線表示「物理上存在但沒有模型」
+    g.strokeStyle = css('--crit'); g.setLineDash([5,4]); g.lineWidth = 2;
+    g.beginPath();
+    for (let k=0;k<=40;k++){
+      const f = k/40, x = arcEnd + seamK*f;
+      const rem = (Rk - x)*1000;
+      const v = rem > 1000 ? glideV(rem, S.ld) : 0;
+      const alt = Math.max(6, equilibriumGlideAlt(v, S.wl)/1000);
+      k ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
+    }
+    g.stroke(); g.setLineDash([]);
+    g.fillStyle = css('--crit'); g.textAlign='center'; g.textBaseline='top';
+    g.fillText('無模型', (x0+x1)/2, box.t+4);
   }
 
-  // 滑翔段:高度隨動能單調下降
+  // Aviator 段:平衡滑翔到跑道
   g.strokeStyle = css('--good'); g.lineWidth = 2.5; g.beginPath();
-  const gl = Math.max(1, Rk - seamK), v0 = Math.min(C.vEntry, TAS_LIMIT);
-  for (let i=0;i<=80;i++){
-    const f = i/80, rem = gl*(1-f)*1000;
+  for (let k=0;k<=90;k++){
+    const f = k/90, x = glideStart + (Rk-glideStart)*f;
+    const rem = (Rk - x)*1000;
     const v = rem > 1000 ? glideV(rem, S.ld) : 0;
-    const fe = v0 > 0 ? Math.min(1, (v/v0)**2) : 0;
-    const alt = 6 + (HANDOVER_ALT/1000 - 6)*fe;
-    const x = seamK + gl*f;
-    i ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
+    const alt = rem > 1000 ? Math.max(6, equilibriumGlideAlt(v, S.wl)/1000) : 6;
+    k ? g.lineTo(box.x(x), box.y(alt)) : g.moveTo(box.x(x), box.y(alt));
   }
   g.stroke();
 
-  // AdvFW 天花板
-  g.strokeStyle = css('--muted'); g.setLineDash([2,4]); g.lineWidth = 1;
-  g.beginPath();
-  g.moveTo(box.l, box.y(ADVFW_CEIL/1000)); g.lineTo(box.r, box.y(ADVFW_CEIL/1000));
-  g.stroke(); g.setLineDash([]);
-  g.fillStyle = css('--muted'); g.textAlign = 'left'; g.textBaseline = 'bottom';
-  g.fillText('AdvFW 生成模型上限 13.1 km', box.l+6, box.y(ADVFW_CEIL/1000)-3);
-
   document.getElementById('profLegend').innerHTML = [
-    ['--accent','動力上升段(Astrogator)'],
-    ['--trace','次軌道彈道弧(Missile)'],
-    ['--crit','再入減速帶 —— 無模型涵蓋'],
+    ['--accent','動力上升到卡門線(Astrogator)'],
+    ['--trace','真空弧(Missile:無升力)'],
+    ['--crit','高速滑翔 —— 無模型涵蓋'],
     ['--good','平衡滑翔與降落(Aviator)'],
   ].map(k => `<div class="key"><span class="swatch" style="background:var(${k[0]})"></span>${k[1]}</div>`).join('');
 
   document.getElementById('profCap').innerHTML =
-    `遠地點 <strong>${fmt(C.bal.apogee/1000)} km</strong>,彈道段飛行時間
-     <strong>${fmt(C.bal.tof/60,1)} 分鐘</strong>。
-     ${C.seam > 0
-       ? `接縫處要靠氣動減速消掉 <strong>${fmt(C.seam)} m/s</strong>。`
-       : '目前設計沒有超出模擬能力的接縫。'}
-     上升段為示意曲線;彈道段以最小能量橢圓繪製。`;
+    `遠地點 <strong>${fmt(C.apogee/1000)} km</strong>,只比卡門線高
+     ${fmt(C.apogee/1000 - 100)} km —— 淺角度熄火(γ ${fmt(GAMMA_BO,1)}°)的結果。
+     <strong>舊版用最小能量彈道時是 1,130 km</strong>,那條軌跡沒有有翼載具會飛。
+     滑翔段的高度不是內插的,每一點都由「升力 = 離心解除後的有效重量」解出。
+     ${C.seamKm > 1000
+       ? `中間 <strong>${fmt(C.seamKm/1000)} km</strong> 的高速滑翔沒有模型涵蓋:
+          真空彈道沒有升力撐不住,而航段求解在
+          ${fmt(TAS_LIMIT)} m/s 以上不收斂。`
+       : '全程都在可模擬範圍內,沒有接縫。'}`;
 }
 
 /* ══ 機翼門檻 ══════════════════════════════════════════════════════════ */
@@ -958,74 +1044,82 @@ function drawWing(C){
   const cv = document.getElementById('wing');
   const {g, w, h} = setup(cv);
   const pad = {l:62, r:14, t:16, b:46};
-  const ldLo = 0.5, ldHi = 4;
+  const ldLo = 0.5, ldHi = 8;
   const pureV = C.pure.v;
-  const pts = [], ptsGlide = [];
-  for (let i=0;i<=70;i++){
-    const ld = ldLo + (ldHi-ldLo)*i/70;
-    pts.push([ld, optimum(C.rangeM, ld).need]);
-    ptsGlide.push([ld, glideV(C.rangeM, ld)]);
+  const pts = [];
+  for (let i=0;i<=90;i++){
+    const ld = ldLo + (ldHi-ldLo)*i/90;
+    pts.push([ld, glideV(C.rangeM, ld)]);
   }
-  const all = pts.concat(ptsGlide).map(p=>p[1]).filter(v=>isFinite(v));
-  const vLo = Math.min(pureV, ...all)*0.96, vHi = Math.max(pureV, ...all)*1.03;
+  const vals = pts.map(p=>p[1]).filter(isFinite);
+  const vLo = Math.min(TAS_LIMIT, ...vals)*0.94;
+  const vHi = Math.max(pureV, ...vals)*1.03;
   const box = {
     l:pad.l, r:w-pad.r, t:pad.t, b:h-pad.b,
     x:v => pad.l + (w-pad.l-pad.r)*((v-ldLo)/(ldHi-ldLo)),
     y:v => (h-pad.b) - (h-pad.t-pad.b)*((v-vLo)/(vHi-vLo)),
   };
   axes(g, box,
-    ticks(ldLo, ldHi, 7, v => fmt(v,1)),
+    ticks(ldLo, ldHi, 5, v => fmt(v,1)),
     ticks(vLo, vHi, 5, v => fmt(v/1000,2)),
     '升阻比 L/D', '所需 v_bo(km/s)');
 
-  // 純彈道基準線
+  // 純彈道基準(不用機翼)
   g.strokeStyle = css('--muted'); g.setLineDash([5,4]); g.lineWidth = 1.5;
-  g.beginPath(); g.moveTo(box.l, box.y(pureV)); g.lineTo(box.r, box.y(pureV)); g.stroke();
-  g.setLineDash([]);
-  g.fillStyle = css('--muted'); g.textAlign = 'right'; g.textBaseline = 'bottom';
-  g.fillText('純彈道基準', box.r-4, box.y(pureV)-4);
+  g.beginPath(); g.moveTo(box.l, box.y(pureV)); g.lineTo(box.r, box.y(pureV));
+  g.stroke(); g.setLineDash([]);
+  g.fillStyle = css('--muted'); g.textAlign='right'; g.textBaseline='bottom';
+  g.fillText('純彈道基準(不用機翼)', box.r-4, box.y(pureV)-4);
 
-  const line = (arr, col, wid) => {
-    g.strokeStyle = css(col); g.lineWidth = wid; g.beginPath();
-    let started = false;
-    arr.forEach(([ld,v]) => {
-      if (!isFinite(v) || v < vLo || v > vHi*1.5) return;
-      started ? g.lineTo(box.x(ld), box.y(v)) : g.moveTo(box.x(ld), box.y(v));
-      started = true;
-    });
-    g.stroke();
-  };
-  line(ptsGlide, '--accent', 1.8);
-  line(pts, '--trace', 2.6);
-
-  // 損益平衡點要看「全程滑翔」那條線,不是最佳三段式。
-  // 最佳化的掃描裡本來就包含 f=1(完全不用機翼),所以最佳解永遠 <= 純彈道,
-  // 那條線不可能穿過基準線 —— 拿它找交點會永遠找不到。
-  let cross = null;
-  for (let i=1;i<ptsGlide.length;i++){
-    if (ptsGlide[i-1][1] >= pureV && ptsGlide[i][1] < pureV){ cross = ptsGlide[i][0]; break; }
-  }
-  if (cross){
+  // 模擬上限
+  if (TAS_LIMIT >= vLo && TAS_LIMIT <= vHi){
     g.strokeStyle = css('--crit'); g.setLineDash([3,3]); g.lineWidth = 1.5;
-    g.beginPath(); g.moveTo(box.x(cross), box.t); g.lineTo(box.x(cross), box.b); g.stroke();
-    g.setLineDash([]);
-    g.fillStyle = css('--crit'); g.textAlign = 'left'; g.textBaseline = 'top';
-    g.fillText('機翼損益平衡 L/D '+fmt(cross,2), box.x(cross)+5, box.t+3);
+    g.beginPath(); g.moveTo(box.l, box.y(TAS_LIMIT));
+    g.lineTo(box.r, box.y(TAS_LIMIT)); g.stroke(); g.setLineDash([]);
+    g.fillStyle = css('--crit'); g.textAlign='left'; g.textBaseline='bottom';
+    g.fillText('Aviator 求解上限 '+fmt(TAS_LIMIT)+' m/s', box.l+6,
+               box.y(TAS_LIMIT)-4);
   }
+
+  // 助推滑翔曲線
+  g.strokeStyle = css('--trace'); g.lineWidth = 2.6; g.beginPath();
+  let st = false;
+  pts.forEach(([ld,v]) => {
+    if (!isFinite(v)) return;
+    st ? g.lineTo(box.x(ld), box.y(v)) : g.moveTo(box.x(ld), box.y(v));
+    st = true;
+  });
+  g.stroke();
+
+  const mark = (ld, col, label) => {
+    if (ld < ldLo || ld > ldHi) return;
+    g.strokeStyle = css(col); g.setLineDash([3,3]); g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(box.x(ld), box.t); g.lineTo(box.x(ld), box.b);
+    g.stroke(); g.setLineDash([]);
+    g.fillStyle = css(col); g.textAlign='left'; g.textBaseline='top';
+    g.fillText(label, box.x(ld)+5, box.t+3);
+  };
+  // 機翼損益平衡
+  let cross = null;
+  for (let i=1;i<pts.length;i++){
+    if (pts[i-1][1] >= pureV && pts[i][1] < pureV){ cross = pts[i][0]; break; }
+  }
+  if (cross) mark(cross, '--muted', '損益平衡 '+fmt(cross,2));
+  mark(C.ldSeamFree, '--crit', '接縫消失 '+fmt(C.ldSeamFree,2));
+
   // 目前設計點
   g.fillStyle = css('--trace');
   g.beginPath(); g.arc(box.x(S.ld), box.y(C.vbo), 5, 0, 7); g.fill();
   g.strokeStyle = css('--surface'); g.lineWidth = 2; g.stroke();
 
   document.getElementById('wingCap').innerHTML =
-    `<strong>藍線</strong>是全程靠滑翔所需的熄火速度,
-     <strong>灰虛線</strong>是完全不用機翼的純彈道基準。
-     ${cross ? `兩者在 <strong>L/D ${fmt(cross,2)}</strong> 交會 ——
-       低於這個值,<strong>機翼是淨負擔</strong>:它延伸的射程補不回自己的代價。` : ''}
-     <br><strong>琥珀線</strong>是最佳三段式(一段彈道 + 一段滑翔),圓點是目前設計點。
-     注意它永遠不會高過基準線 —— 因為「完全不用機翼」本身就是最佳化的候選解之一。
-     <strong>看最佳化後的曲線,看不出某個設計要素划不划算</strong>,
-     要和「不用它」的單一設計直接比才看得出來。`;
+    `<strong>琥珀線</strong>是淺角度助推滑翔所需的熄火速度,圓點是目前設計點。
+     ${cross ? `低於 <strong>L/D ${fmt(cross,2)}</strong> 時它高過純彈道基準 ——
+       <strong>機翼是淨負擔</strong>,延伸的射程補不回自己的代價。` : ''}
+     <br>另一條紅線是模擬工具的求解上限。兩者在
+     <strong>L/D ${fmt(C.ldSeamFree,2)}</strong> 相交 ——
+     升阻比到那個值,整條任務落進可模擬範圍,<strong>模型接縫消失</strong>。
+     <strong>工具邊界在這裡變成一個設計指標</strong>,而不是事後才發現的限制。`;
 }
 
 /* ══ 質量比的指數牆 ════════════════════════════════════════════════════ */
