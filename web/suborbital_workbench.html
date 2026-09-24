@@ -1041,6 +1041,32 @@ function arcAndEntry(vbo, wl){
   return {arc, alt, v:vEnd, o};
 }
 
+/* ── 動力上升段的沿程 ────────────────────────────────────────────────
+   **這是查表,不是在瀏覽器裡積分。** 上升段要解「踢角 + 假設損失」
+   兩個旋鈕才能把熄火打在設計點上,單次約 0.12 秒 ——
+   拖動滑桿時要算幾十次,在瀏覽器裡做不到。
+
+   所以由 spaceport_ascent.ascent_downrange() 預先算好 30 個取樣點
+   (v_bo 2,000-7,800 m/s,間隔 200),這裡線性插值。
+   **插值誤差已量測:最大 935 m**,相對於 1,200 km 的沿程是 0.08%。
+
+   為什麼非算不可:上升段要飛 1,200 km 才到得了熄火點,而任務幾何
+   先前把它當成一個點 —— 整條任務會飛過落點 1,259 km。      */
+const ASCENT_TBL = [[2000,210375],[2200,245674],[2400,282863],[2600,322174],[2800,363572],[3000,406434],[3200,452134],[3400,498384],[3600,546962],[3800,595995],[4000,647410],[4200,700406],[4400,754351],[4600,809151],[4800,865062],[5000,922456],[5200,980868],[5400,1040261],[5600,1100770],[5800,1161896],[6000,1224387],[6200,1287408],[6400,1351496],[6600,1415763],[6800,1479971],[7000,1546084],[7200,1613379],[7400,1680165],[7600,1747773],[7800,1815732]];
+
+function ascentDownrange(vbo){
+  const T = ASCENT_TBL;
+  if (vbo <= T[0][0]) return T[0][1]*vbo/T[0][0];      // 低速端外插到原點
+  if (vbo >= T[T.length-1][0]) return T[T.length-1][1];
+  for (let i = 1; i < T.length; i++){
+    if (vbo <= T[i][0]){
+      const [x0,y0] = T[i-1], [x1,y1] = T[i];
+      return y0 + (y1-y0)*(vbo-x0)/(x1-x0);
+    }
+  }
+  return T[T.length-1][1];
+}
+
 /* 助推滑翔的**自洽閉合解**。與 spaceport_analysis.boost_glide() 同一套式子。
 
    2026-09 修正:先前寫成 v_bo = glideV(全程),等於假設「從熄火起就一路
@@ -1055,7 +1081,8 @@ function arcAndEntry(vbo, wl){
 function boostGlide(range, ld, wl){
   const closure = v => {
     const r = arcAndEntry(v, wl);
-    return Math.min(range*0.5, r.arc) + glideRangeOf(r.v, ld) - range;
+    return (ascentDownrange(v) + Math.min(range*0.5, r.arc)
+            + glideRangeOf(r.v, ld) - range);
   };
   let lo = 200, hi = V_CIRC_SURF*0.9999;
   const feasible = closure(hi) >= 0;
@@ -1068,11 +1095,12 @@ function boostGlide(range, ld, wl){
   const vbo = feasible ? (lo+hi)/2 : hi;
   const r = arcAndEntry(vbo, wl);
   const arc = Math.min(range*0.5, r.arc);
-  const glide = Math.max(0, range - arc);
+  const ascent = ascentDownrange(vbo);
+  const glide = Math.max(0, range - arc - ascent);
   return {v_bo: vbo, v_entry: r.v, apogee: r.o.apogee,
           e: r.o.e, p: r.o.p, a: r.o.a,
-          glideAlt: r.alt, arc, aviator: glide, glide,
-          residual: arc + glideRangeOf(r.v, ld) - range,
+          glideAlt: r.alt, arc, ascent, aviator: glide, glide,
+          residual: ascent + arc + glideRangeOf(r.v, ld) - range,
           seam: 0,                                  // 航程缺口已歸零
           seamDv: Math.max(0, r.v - TAS_LIMIT),     // 工具邊界
           feasible};
@@ -1192,7 +1220,7 @@ function compute(){
           tw2, t1, t2, coastS, tSep:t1, tBO:t1+coastS+t2, vEntry, qRatio,
           decelG, seam: bg.seamDv, seamKm: bg.seam, pctOrbital, saveVsPure,
           vEntryArc: bg.v_entry, arcM: bg.arc, glideM: bg.glide,
-          residual: bg.residual,
+          ascentM: bg.ascent, residual: bg.residual,
           apogee: bg.apogee, ldSeamFree};
 }
 
