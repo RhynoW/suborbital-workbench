@@ -1398,10 +1398,17 @@ function ascentDownrange(vbo){
 
    結果 v_bo 降約 218 m/s,弧終點速度恰好等於該點所需的滑翔進入速度,
    **航程接縫歸零**。剩下的 seamDv 只是工具邊界,與航程無關。      */
-function boostGlide(range, ld, wl){
+/* `withAscent = false` 時把動力上升段的沿程當成**發射點的一個點事件**,
+   也就是熄火點直接落在發射場上空。那不是給任務設計用的 ——
+   任務設計一定要含上升段(不含的話會飛過目的地 1,259 km)。
+   它只給**與純彈道基準的比較**用:`ballistic()` 的假設是
+   「起點與落點同半徑、無阻力」,那個基準根本沒有熄火高度,
+   發射點就是熄火點。兩邊要在同一個理想化層級才能比。 */
+function boostGlide(range, ld, wl, withAscent){
+  const useAsc = (withAscent === undefined) ? true : !!withAscent;
   const closure = v => {
     const r = arcAndEntry(v, wl);
-    return (ascentDownrange(v) + Math.min(range*0.5, r.arc)
+    return ((useAsc ? ascentDownrange(v) : 0) + Math.min(range*0.5, r.arc)
             + glideRangeOf(r.v, ld) - range);
   };
   let lo = 200, hi = V_CIRC_SURF*0.9999;
@@ -1415,7 +1422,7 @@ function boostGlide(range, ld, wl){
   const vbo = feasible ? (lo+hi)/2 : hi;
   const r = arcAndEntry(vbo, wl);
   const arc = Math.min(range*0.5, r.arc);
-  const ascent = ascentDownrange(vbo);
+  const ascent = useAsc ? ascentDownrange(vbo) : 0;
   const glide = Math.max(0, range - arc - ascent);
   return {v_bo: vbo, v_entry: r.v, apogee: r.o.apogee,
           e: r.o.e, p: r.o.p, a: r.o.a,
@@ -1546,7 +1553,9 @@ function compute(){
   let beLo = 0.3, beHi = 8.0;
   for (let i = 0; i < 34; i++){
     const m = (beLo + beHi) / 2;
-    if (boostGlide(rangeM, m, S.wl).v_bo > pure.v) beLo = m; else beHi = m;
+    // **不含上升段** —— 要與 pure(起點落點同半徑的理想彈道)同層級
+    if (boostGlide(rangeM, m, S.wl, false).v_bo > pure.v) beLo = m;
+    else beHi = m;
   }
   const ldBreakEven = (beLo + beHi) / 2;
   return {rangeM, pure, bg, vbo, assist, dvTotal, dv1, dv2, mr1, mr2, mrTot,
@@ -3182,8 +3191,9 @@ function renderFactors(C){
         ? `相對純彈道省 <b>${fmt(C.saveVsPure)} m/s</b>。`
         : `相對純彈道<b>多要 ${fmt(-C.saveVsPure)} m/s</b> —— 機翼是淨負擔。`}
       損益平衡點在 L/D ≈ <b>${fmt(C.ldBreakEven,2)}</b>
-      (<b>看怎麼記帳</b>:本頁的滑翔側含動力上升段而純彈道側不含;
-      兩側都含是 1.10、都不含是 0.81。三種都遠低於設計點);
+      (這個比較<b>兩側都不含動力上升段</b> —— 純彈道基準的假設是
+      「起點與落點同半徑」,本來就沒有上升段。只在有翼側加上它
+      會把門檻壓到 0.60);
       而 L/D ≈ <b>${fmt(C.ldSeamFree,2)}</b> 時熄火速度降到模擬上限以下,
       <b>模型接縫消失</b>。`],
     ['熱防護', '速度三次方熱負荷指標', '鼻錐的熱負荷隨速度怎麼長?',
@@ -3503,10 +3513,15 @@ function drawWing(C){
   const pad = {l:62, r:14, t:16, b:46};
   const ldLo = 0.5, ldHi = 8;
   const pureV = C.pure.v;
+  // **這張圖兩側都不含動力上升段。** 它要比的是「同樣飛 13,109 km,
+  // 有翼與無翼各要多少熄火速度」,而無翼那一側(ballistic)的假設是
+  // 「起點與落點同半徑、無阻力」—— 沒有熄火高度、沒有上升段。
+  // 只在有翼側加上真實的 1,570 km 上升段沿程,等於讓它少飛那麼多滑翔,
+  // 門檻會從 0.81 被壓到 0.60。本頁其他地方的 v_bo **都含上升段**。
   const pts = [];
   for (let i=0;i<=90;i++){
     const ld = ldLo + (ldHi-ldLo)*i/90;
-    pts.push([ld, glideV(C.rangeM, ld)]);
+    pts.push([ld, boostGlide(C.rangeM, ld, S.wl, false).v_bo]);
   }
   const vals = pts.map(p=>p[1]).filter(isFinite);
   const vLo = Math.min(TAS_LIMIT, ...vals)*0.94;
@@ -3571,8 +3586,12 @@ function drawWing(C){
     `<strong>琥珀線</strong>是淺角度助推滑翔所需的熄火速度,圓點是目前設計點。
      低於 <strong>L/D ${fmt(C.ldBreakEven,2)}</strong> 時它高過純彈道基準 ——
      <strong>機翼是淨負擔</strong>,延伸的射程補不回自己的代價。
-     (那個門檻<strong>看怎麼記帳</strong>:本頁的滑翔側含動力上升段而純彈道側
-     不含;兩側都含是 1.10、都不含是 0.81。三種都遠低於本頁的設計點。)
+     <br><strong>這張圖兩側都不含動力上升段</strong>,因為純彈道基準的假設是
+     「起點與落點同半徑、無阻力」,它根本沒有熄火高度。
+     只在有翼側加上真實的 1,570 km 上升段沿程,等於讓它少飛那麼多滑翔,
+     門檻會被壓到 0.60 —— 那是**不一致的比較**。
+     本頁其他地方的熄火速度都是**含**上升段的(不含的話會飛過目的地
+     1,259 km)。
      <br>另一條紅線是模擬工具的求解上限。兩者在
      <strong>L/D ${fmt(C.ldSeamFree,2)}</strong> 相交 ——
      升阻比到那個值,整條任務落進可模擬範圍,<strong>模型接縫消失</strong>。
