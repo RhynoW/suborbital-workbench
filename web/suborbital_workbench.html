@@ -1007,9 +1007,150 @@ code{font-family:var(--mono); font-size:.92em; background:var(--surface-2);
   </div>
 </section>
 
+<!-- ── 分節分離與尾焰 ───────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">14</span><h2>分節分離與尾焰:動畫怎麼做出來的</h2></div>
+  <p class="sec-note">
+    前兩節談模型與介面的邊界。這一節是同一個問題的第三個面向:
+    <strong>要讓 3D 視窗真的演出「雙節火箭分離、兩段都有尾焰」,
+    工具允許你做到哪裡。</strong>
+    做法和第 13 節一樣 —— 逐條實測,不查手冊推測。
+  </p>
+
+  <figure>
+    <div class="plot"><canvas id="sepTL" width="1120" height="260"></canvas></div>
+    <figcaption id="sepTLCap"></figcaption>
+  </figure>
+
+  <h3 style="margin-top:30px; font-size:17px">一、實測:哪一條路走得通</h3>
+  <div class="tblwrap">
+    <table>
+      <thead><tr>
+        <th style="width:9%">結果</th><th style="width:44%">機制</th><th>說明</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><b>ACK</b></td>
+          <td><code>VO &lt;obj&gt; VaporTrail Show On</code>(Connect)</td>
+          <td>尾焰的<strong>開關</strong>。Aircraft 與 Missile 都支援</td></tr>
+        <tr><td>NACK</td>
+          <td><code>VO &lt;obj&gt; Trail ...</code>(Connect)</td>
+          <td>沒有這個關鍵字</td></tr>
+        <tr><td><b>可用</b></td>
+          <td><code>VaporTrail.DisplayInterval</code></td>
+          <td>「尾焰只在某段時間出現」就是靠它。可設可回讀</td></tr>
+        <tr><td><b>可用</b></td>
+          <td><code>VaporTrail.ImageFile</code></td>
+          <td>STK 內建 <code>flametex-orange/blue/white.tga</code></td></tr>
+        <tr><td><b>看模型</b></td>
+          <td><code>UseAttachPoint</code> / <code>AttachPointName</code></td>
+          <td>掛在噴嘴上。<strong>模型有提供掛點才行</strong></td></tr>
+        <tr><td>NACK</td>
+          <td>Connect 的 <code>Articulate</code></td>
+          <td>三種寫法全部失敗,<strong>即使活動件名稱正確</strong></td></tr>
+        <tr><td><b>可用</b></td>
+          <td><code>.sama</code> articulation 檔</td>
+          <td><strong>唯一</strong>的時變活動件機制。格式是讀 STK 自己的樣本得到的</td></tr>
+        <tr><td>陷阱</td>
+          <td><code>Model.Articulation.VOArticulationFile</code></td>
+          <td>它是<strong>物件不是字串</strong>。直接指派會得到
+              「property has no setter」;要用
+              <code>.Filename</code> + <code>.Reload()</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:30px; font-size:17px">二、模型決定你能演什麼</h3>
+  <p class="sec-note">
+    這是最容易被忽略的一層:<strong>尾焰與分節不是 STK 的功能,是模型的幾何。</strong>
+    模型沒有火焰件,就沒有火焰可以縮放;沒有掛點,尾跡就只能從物件原點噴出。
+  </p>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th style="width:30%">模型</th><th style="width:28%">掛點</th>
+        <th>關鍵活動件</th></tr></thead>
+      <tbody>
+        <tr><td><code>Space\launchvehicle.glb</code></td>
+          <td><code>Flame_Booster1/2</code>、<code>SRB_Flame1..6</code></td>
+          <td><strong><code>BoosterFlames:Size</code></strong>、
+              <code>UpperStageFlames:Size</code>、
+              <code>SRBs:{Drop,Separate}</code>、
+              <code>Fairing:{Open,Drop,Separate}</code></td></tr>
+        <tr><td><code>Missiles\missile_stages.glb</code></td>
+          <td>三節各有 <code>*_Smoke</code></td>
+          <td><code>ScaleFirstStage:{Size,Drop}</code>、
+              <code>FirstStageFlame:Size</code>,二三節同理</td></tr>
+        <tr><td>內建 <code>Airircraft.glb</code></td>
+          <td><code>StarboardEngine</code>、<code>PortEngine</code></td>
+          <td>只有 <code>Aircraft:{Size,Roll,Pitch,Yaw,Move*}</code> ——
+              <strong>沒有火焰件</strong></td></tr>
+        <tr><td>本頁自製的太空飛機 <code>.glb</code></td>
+          <td><strong>無</strong></td>
+          <td><strong>無</strong> —— 自己產的網格沒有掛點也沒有活動件</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <h3>由實測導出的設計</h3>
+    <p>
+      <b>第一節</b>是新增的獨立物件,用 <code>launchvehicle.glb</code>
+      (它有分節與火焰活動件)。星曆是上升段的 [0, 分離] 再接一段
+      <strong>拋離墜落</strong> —— 用完的節是彈道墜落,不是消失。
+      <code>.sama</code> 檔驅動火焰大小:燃燒中全開,分離時 1 秒收掉,
+      本體 2 秒內縮成空殼。另外加一層掛在噴嘴的 VaporTrail 當煙柱。
+    </p>
+    <p>
+      <b>第二節</b>沿用原本的上升段物件,模型維持<strong>太空飛機</strong>。
+      它沒有掛點,所以尾焰只能由物件原點噴出,時間窗是 [二節點火, 熄火]。
+    </p>
+    <p>
+      兩段的時間窗<strong>沒有一個是手填的</strong>,全部來自本頁上面那組
+      設計變數解出來的時程 —— 拖動滑桿,上圖的時間軸就會跟著變。
+    </p>
+  </div>
+
+  <div class="callout">
+    <h3>兩個量到的工具邊界</h3>
+    <p>
+      <b>一、場景起點那一格不套用 articulation。</b>
+      恰好 <code>t = 0</code> 時活動件的值不是檔案給的,
+      從 <code>t = 0.5 s</code> 起才正確。三種寫法都試過:
+      STARTTIME 取 0、取 −10(場景起點之前)、
+      拉成 <code>−99999 + DURATION 99999</code>(也就是 t = 0 時確實有事件在作用)
+      —— 結果一樣。
+      中途一度以為「把燃燒段排到檔案最後」修好了,但那是
+      <code>Reload()</code> 之後的<strong>暫態</strong>,把時間移開再移回來就破功。
+      實務上按下播放就看不到這一格。
+    </p>
+    <p>
+      <b>二、活動件是隨動畫步進推進的,不是時間的絕對函數。</b>
+      從 <code>t = 181</code> 直接跳到 <code>185</code> 讀到火焰全開
+      (應該已經關了),因為中間那個 1 秒的漸變事件被跳過;逐秒走過去就正確。
+      驗證因此必須<strong>像真的播放一樣走過去</strong> ——
+      這一項的檢查自己就錯了兩次,第一版還以為是回讀延遲。
+    </p>
+  </div>
+
+  <div class="callout">
+    <h3>這個做法不是什麼</h3>
+    <p>
+      VaporTrail 是 STK 的<strong>煙團(puff)系統</strong>。
+      把貼圖換成火焰只是讓它<em>看起來</em>像噴焰 ——
+      它<strong>不是噴流物理模型</strong>:沒有膨脹比、沒有背壓效應、
+      沒有真空中的羽流擴張。活動件的火焰是<strong>模型自帶的幾何</strong>,同理。
+      要算真的羽流得用 CFD 或 plume 模組,不在本頁範圍。
+    </p>
+    <p>
+      分離前兩個物件在<strong>同一個位置</strong> —— 它們本來就是連在一起的 ——
+      所以太空飛機會落在推進器模型裡面。實作把推進器往後挪了一段讓兩個都看得見,
+      那是<strong>純視覺,沒有物理意義</strong>。
+    </p>
+  </div>
+</section>
+
 <!-- ── 名詞對照 ─────────────────────────────────────── -->
 <section>
-  <div class="sec-head"><span class="sec-num">14</span><h2>名詞對照</h2></div>
+  <div class="sec-head"><span class="sec-num">15</span><h2>名詞對照</h2></div>
   <p class="sec-note">
     這一節不推導,只把前面用到的符號一次列清楚,並附上<strong>最常見的誤解</strong> ——
     那一欄比定義欄有用。「本頁的值」會跟著上面的滑桿一起變。
@@ -1507,6 +1648,7 @@ function render(){
   drawProfile(C);
   drawWing(C);
   drawMass(C);
+  drawSepTimeline(C);
 }
 
 /* ══ 三層狀態:數學可算 / 模型適用 / 工程可行 ══════════════════════════
@@ -3213,6 +3355,95 @@ function drawProfile(C){
 }
 
 /* ══ 機翼門檻 ══════════════════════════════════════════════════════════ */
+/* ══ 分節分離與尾焰的時間軸 ════════════════════════════════════════════
+   甘特圖式的四條帶:第一節燃燒、滑行、第二節燃燒,以及兩段尾焰的時間窗。
+   時刻全部來自 compute() 解出來的時程(C.tSep / C.coastS / C.tBO),
+   所以拖滑桿它會跟著動 —— **這一節講的是動畫,數字不能是寫死的**。 */
+function drawSepTimeline(C){
+  const cv = document.getElementById('sepTL');
+  if (!cv) return;
+  const {g, w, h} = setup(cv);
+  const pad = {l:104, r:18, t:40, b:44};
+  const tIgn = C.tSep + C.coastS;
+  const tHi = Math.max(60, C.tBO * 1.04);
+  const X = t => pad.l + (w - pad.l - pad.r) * (t / tHi);
+  const rows = [
+    {label:'第一節推力',  t0:0,    t1:C.tSep, col:'--tj-glide'},
+    {label:'滑行',        t0:C.tSep, t1:tIgn, col:'--muted'},
+    {label:'第二節推力',  t0:tIgn, t1:C.tBO,  col:'--accent'},
+    {label:'第一節尾焰',  t0:0,    t1:C.tSep, col:'--warn'},
+    {label:'太空飛機尾焰', t0:tIgn, t1:C.tBO, col:'--warn'},
+  ];
+  const bh = 22, gap = 9;
+  const top = pad.t;
+
+  // 時間軸
+  g.strokeStyle = css('--grid'); g.lineWidth = 1;
+  g.font = '11.5px "IBM Plex Mono", monospace';
+  g.fillStyle = css('--muted'); g.textAlign = 'center'; g.textBaseline = 'top';
+  const yAxis = h - pad.b + 6;
+  for (const tk of ticks(0, tHi, 6, v => fmt(v, 0))){
+    const x = X(tk.v);
+    g.beginPath(); g.moveTo(x, top); g.lineTo(x, yAxis); g.stroke();
+    g.fillText(tk.t, x, yAxis + 4);
+  }
+  g.fillStyle = css('--muted'); g.textAlign = 'right';
+  g.fillText('T+ 秒', w - pad.r, yAxis + 22);
+
+  // 帶
+  g.font = '12px "IBM Plex Sans", sans-serif';
+  rows.forEach((r, i) => {
+    const y = top + i * (bh + gap);
+    const x0 = X(r.t0), x1 = X(r.t1);
+    g.fillStyle = css(r.col); g.globalAlpha = (i >= 3) ? 0.55 : 0.85;
+    g.fillRect(x0, y, Math.max(2, x1 - x0), bh);
+    g.globalAlpha = 1;
+    g.strokeStyle = css('--surface'); g.lineWidth = 1;
+    g.strokeRect(x0, y, Math.max(2, x1 - x0), bh);
+    g.fillStyle = css('--ink'); g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.fillText(r.label, pad.l - 10, y + bh / 2);
+    const dur = r.t1 - r.t0;
+    if (x1 - x0 > 54){
+      g.fillStyle = css('--surface'); g.textAlign = 'center';
+      g.fillText(fmt(dur, 0) + ' s', (x0 + x1) / 2, y + bh / 2);
+    }
+  });
+
+  // 事件標記。
+  // **標籤要錯開。** 分離與二節點火只差滑行的那幾秒,同高會疊在一起
+  // (第一版就是這樣,「分離 183s」和「二節點火 189s」糊成一團)。
+  // 所以逐一檢查與前一個標籤的水平距離,太近就往下讓一層。
+  const marks = [[C.tSep, '分離'], [tIgn, '二節點火'], [C.tBO, '熄火']];
+  g.setLineDash([3,3]); g.lineWidth = 1.5;
+  g.font = '11.5px "IBM Plex Mono", monospace';
+  let lastX = -1e9, lane = 0;
+  marks.forEach(([t, lab]) => {
+    const x = X(t);
+    const txt = lab + ' ' + fmt(t, 0) + 's';
+    const need = g.measureText(txt).width * 0.5 + 6;
+    lane = (x - lastX < need * 2) ? lane + 1 : 0;
+    lastX = x;
+    const yTop = top - 6 - lane * 15;
+    // 虛線一律從**標籤區之下**起筆。跟著 yTop 走的話,
+    // 被抬高那一個的虛線會穿過下層那個標籤的文字。
+    g.strokeStyle = css('--crit');
+    g.beginPath(); g.moveTo(x, top - 3); g.lineTo(x, yAxis); g.stroke();
+    g.fillStyle = css('--crit'); g.textAlign = 'center'; g.textBaseline = 'bottom';
+    g.fillText(txt, x, yTop);
+  });
+  g.setLineDash([]);
+
+  const cap = document.getElementById('sepTLCap');
+  if (cap) cap.innerHTML =
+    '分節時序由本頁的設計變數解出來,不是寫死的 —— 拖動滑桿會跟著變。' +
+    '<strong>分離 T+' + fmt(C.tSep, 0) + ' s</strong>、' +
+    '二節點火 T+' + fmt(tIgn, 0) + ' s(滑行 ' + fmt(C.coastS, 0) + ' s)、' +
+    '熄火 T+' + fmt(C.tBO, 0) + ' s。' +
+    '兩段尾焰的 <code>DisplayInterval</code> 就設成這兩個區間。' +
+    'STK 場景裡的值會再差約 1.4 s —— 那裡用的是「要讓熄火落在設計點,' +
+    '損失得是多少」的兩旋鈕解,而這裡用的是假設損失 1,600 m/s。';
+}
+
 function drawWing(C){
   const cv = document.getElementById('wing');
   const {g, w, h} = setup(cv);
