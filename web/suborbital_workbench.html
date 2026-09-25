@@ -1537,9 +1537,22 @@ function compute(){
   const pctOrbital = vbo/V_CIRC_200*100;
   const saveVsPure = pure.v - vbo;
   const ldSeamFree = ldForVelocity(rangeM, TAS_LIMIT);
+  // 機翼由「淨負擔」轉為「有利」的門檻:所需 v_bo 等於純彈道基準之處。
+  // **記帳是不一致的**:boostGlide() 含動力上升段的沿程,
+  // 而 pure(純彈道)不含。兩側都含的話門檻會從 0.60 移到 1.10,
+  // 兩側都不含則是 0.81 —— 見 spaceport_analysis.wing_break_even_ld()。
+  // 這裡用的是與本頁曲線一致的那一種(含滑翔側),
+  // 這樣圖上的交點與文字才會是同一個數。
+  let beLo = 0.3, beHi = 8.0;
+  for (let i = 0; i < 34; i++){
+    const m = (beLo + beHi) / 2;
+    if (boostGlide(rangeM, m, S.wl).v_bo > pure.v) beLo = m; else beHi = m;
+  }
+  const ldBreakEven = (beLo + beHi) / 2;
   return {rangeM, pure, bg, vbo, assist, dvTotal, dv1, dv2, mr1, mr2, mrTot,
           tw2, t1, t2, coastS, tSep:t1, tBO:t1+coastS+t2, vEntry, qRatio,
           decelG, seam: bg.seamDv, seamKm: bg.seam, pctOrbital, saveVsPure,
+          ldBreakEven,
           vEntryArc: bg.v_entry, arcM: bg.arc, glideM: bg.glide,
           ascentM: bg.ascent, residual: bg.residual,
           apogee: bg.apogee, ldSeamFree};
@@ -3168,7 +3181,9 @@ function renderFactors(C){
      `${C.saveVsPure >= 0
         ? `相對純彈道省 <b>${fmt(C.saveVsPure)} m/s</b>。`
         : `相對純彈道<b>多要 ${fmt(-C.saveVsPure)} m/s</b> —— 機翼是淨負擔。`}
-      損益平衡點在 L/D ≈ <b>1.6</b>;
+      損益平衡點在 L/D ≈ <b>${fmt(C.ldBreakEven,2)}</b>
+      (<b>看怎麼記帳</b>:本頁的滑翔側含動力上升段而純彈道側不含;
+      兩側都含是 1.10、都不含是 0.81。三種都遠低於設計點);
       而 L/D ≈ <b>${fmt(C.ldSeamFree,2)}</b> 時熄火速度降到模擬上限以下,
       <b>模型接縫消失</b>。`],
     ['熱防護', '速度三次方熱負荷指標', '鼻錐的熱負荷隨速度怎麼長?',
@@ -3541,12 +3556,10 @@ function drawWing(C){
     g.fillStyle = css(col); g.textAlign='left'; g.textBaseline='top';
     g.fillText(label, box.x(ld)+5, box.t+3);
   };
-  // 機翼損益平衡
-  let cross = null;
-  for (let i=1;i<pts.length;i++){
-    if (pts[i-1][1] >= pureV && pts[i][1] < pureV){ cross = pts[i][0]; break; }
-  }
-  if (cross) mark(cross, '--muted', '損益平衡 '+fmt(cross,2));
+  // 機翼損益平衡。用 compute() 解出來的那個值,不要再從畫出來的點內插
+  // —— 取樣只有 90 點,內插出來的交點會跟文字對不起來。
+  if (C.ldBreakEven > ldLo && C.ldBreakEven < ldHi)
+    mark(C.ldBreakEven, '--muted', '損益平衡 '+fmt(C.ldBreakEven,2));
   mark(C.ldSeamFree, '--crit', '接縫消失 '+fmt(C.ldSeamFree,2));
 
   // 目前設計點
@@ -3556,8 +3569,10 @@ function drawWing(C){
 
   document.getElementById('wingCap').innerHTML =
     `<strong>琥珀線</strong>是淺角度助推滑翔所需的熄火速度,圓點是目前設計點。
-     ${cross ? `低於 <strong>L/D ${fmt(cross,2)}</strong> 時它高過純彈道基準 ——
-       <strong>機翼是淨負擔</strong>,延伸的射程補不回自己的代價。` : ''}
+     低於 <strong>L/D ${fmt(C.ldBreakEven,2)}</strong> 時它高過純彈道基準 ——
+     <strong>機翼是淨負擔</strong>,延伸的射程補不回自己的代價。
+     (那個門檻<strong>看怎麼記帳</strong>:本頁的滑翔側含動力上升段而純彈道側
+     不含;兩側都含是 1.10、都不含是 0.81。三種都遠低於本頁的設計點。)
      <br>另一條紅線是模擬工具的求解上限。兩者在
      <strong>L/D ${fmt(C.ldSeamFree,2)}</strong> 相交 ——
      升阻比到那個值,整條任務落進可模擬範圍,<strong>模型接縫消失</strong>。
